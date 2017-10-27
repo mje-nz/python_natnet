@@ -1,0 +1,5 @@
+.idea/workspace.xml
+.idea/task.xml
+.idea/markdown-navigator*
+*.pyc
+.cache/*
