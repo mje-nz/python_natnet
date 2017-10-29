@@ -3,4 +3,4 @@
 .idea/markdown-navigator*
 *.pyc
 .cache/*
-test/.cache/*
+tests/.cache/*
