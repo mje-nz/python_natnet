@@ -3,6 +3,7 @@
 
 import collections
 import enum
+import socket
 import struct
 from typing import Optional
 
@@ -11,6 +12,7 @@ from attr import attrs, attrib
 
 
 # Create structs for reading various object types to speed up parsing
+bool_t = struct.Struct('?')
 int16_t = struct.Struct('<h')
 uint16_t = struct.Struct('<H')
 uint32_t = struct.Struct('<I')
@@ -55,11 +57,28 @@ class ParseBuffer(object):
         self.offset += struct_type.size
         return value
 
-    def unpack_cstr(self):
+    def unpack_cstr(self, size=None):
+        """Unpack a null-terminated string.
+
+        If size is given then always unpack that many bytes, otherwise unpack up to the first null.
+        """
+        field = self.data[self.offset:]
+        if size:
+            field = self.data[self.offset:self.offset + size]
+
         # TODO: Is this better?
         #value = data.split('\0', 1)[0]
         value, _, _ = bytes(self.data[self.offset:]).partition(b'\0')
-        self.offset += len(value) + 1
+
+        if size:
+            self.offset += size
+        else:
+            self.offset += len(value) + 1
+        return value.decode('utf-8')
+
+    def unpack_bytes(self, size):
+        value = bytes(self.data[self.offset:self.offset + size])
+        self.offset += size
         return value
 
 
@@ -302,6 +321,53 @@ class MocapFrameMessage(object):
 
         return cls(frame_number, markersets, unlabelled_markers, rigid_bodies, skeletons, labelled_markers,
                    force_plates, devices, timing_info, params)
+
+
+@attrs(slots=True)
+class ConnectionInfo(object):
+
+    data_port = attrib()  # type: int
+    multicast = attrib()  # type: bool
+    _multicast_address = attrib()  # type: bytes
+
+    @classmethod
+    def deserialize(cls, data, version):
+        data_port = data.unpack(uint16_t)
+        multicast = data.unpack(bool_t)
+        multicast_address = data.unpack_bytes(4)
+        return cls(data_port, multicast, multicast_address)
+
+    @property
+    def multicast_address(self):
+        """Return the multicast address as a string."""
+        # TODO: Should use this instead of hardcoding multicast address
+        return socket.inet_ntoa(self._multicast_address)
+
+
+@attrs(slots=True)
+class ServerInfoMessage(object):
+
+    app_name = attrib()  # type: str
+    app_version = attrib()  # type: Version
+    natnet_version = attrib()  # type: Version
+    high_resolution_clock_frequency = attrib()  # type: Optional[int]
+    connection_info = attrib()  # type: Optional[ConnectionInfo]
+
+    @classmethod
+    def deserialize(cls, data, version):
+        data = ParseBuffer(data)
+
+        app_name = data.unpack_cstr(256)
+        app_version = Version.deserialize(data, version)
+        natnet_version = Version.deserialize(data, version)
+
+        high_resolution_clock_frequency = None
+        connection_info = None
+        if version >= Version(3):
+            high_resolution_clock_frequency = data.unpack(uint64_t)
+            connection_info = ConnectionInfo.deserialize(data, version)
+
+        return cls(app_name, app_version, natnet_version, high_resolution_clock_frequency, connection_info)
 
 
 @attrs(slots=True)
