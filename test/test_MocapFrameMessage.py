@@ -2,13 +2,13 @@
 
 import pytest
 
-from optitrack.protocol import MocapFrameMessage, Version
+from optitrack.protocol import deserialize, MocapFrameMessage, Version
 
 
 def test_parse_mocapframe_packet_v3():
     """Test parsing a NatNet 3.0 packet containing a MocapFrame."""
     data = open('test/mocapframe_packet_v3.bin', 'rb').read()
-    frame = MocapFrameMessage.deserialize(data[4:], Version(3))  # type: MocapFrameMessage
+    frame = deserialize(data, Version(3), strict=True)  # type: MocapFrameMessage
 
     # These values are verified against SampleClient where easy
 

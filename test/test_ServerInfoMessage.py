@@ -1,12 +1,12 @@
 """Tests for parsing ServerInfo messages."""
 
-from optitrack.protocol import ServerInfoMessage, Version
+from optitrack.protocol import deserialize, ServerInfoMessage, Version
 
 
 def test_parse_serverinfo_packet_v3():
     """Test parsing a NatNet 3.0 packet containing a ServerInfo message."""
     data = open('test/serverinfo_packet_v3.bin', 'rb').read()
-    info = ServerInfoMessage.deserialize(data[4:], Version(3))  # type: ServerInfoMessage
+    info = deserialize(data, Version(3), strict=True)  # type: ServerInfoMessage
 
     # These values are verified against SampleClient where easy
 

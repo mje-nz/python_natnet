@@ -1,5 +1,6 @@
-"""Tests for NatNetVersion class."""
-from optitrack.protocol import Version
+"""Tests for Version class."""
+
+from optitrack.protocol import Version, ParseBuffer
 
 
 def test_construct_default():
@@ -31,3 +32,11 @@ def test_comparisons_from_protocol_3_0():
     assert version >= Version(2, 11)
     assert version >= Version(3)
     assert not version < Version(3)
+
+
+def test_deserialize():
+    assert Version.deserialize(ParseBuffer(b'\x04\x03\x02\x01')) == Version(4, 3, 2, 1)
+
+
+def test_serialize():
+    assert Version(4, 3, 2, 1).serialize() == b'\x04\x03\x02\x01'

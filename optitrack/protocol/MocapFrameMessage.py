@@ -1,101 +1,10 @@
 # coding: utf-8
-"""NatNet protocol parsing."""
 
-import collections
-import enum
-import socket
-import struct
 from typing import Optional
 
-import attr
 from attr import attrs, attrib
 
-
-# Create structs for reading various object types to speed up parsing
-bool_t = struct.Struct('?')
-int16_t = struct.Struct('<h')
-uint16_t = struct.Struct('<H')
-uint32_t = struct.Struct('<I')
-uint64_t = struct.Struct('<Q')
-float_t = struct.Struct('<f')
-double_t = struct.Struct('<d')
-vector3_t = struct.Struct('<fff')
-quaternion_t = struct.Struct('<ffff')
-
-
-class MessageId(enum.IntEnum):
-
-    """Message IDs as in NatNetTypes.h."""
-    Connect = 0
-    ServerInfo = 1
-    Request = 2
-    Response = 3
-    RequestModelDef = 4
-    ModelDef = 5
-    RequestFrameOfData = 6
-    FrameOfData = 7
-    MessageString = 8
-    Disconnect = 9
-    KeepAlive = 10
-    DisconnectByTimeout = 11
-    EchoRequest = 12
-    EchoResponse = 13
-    Discovery = 14
-    UnrecognizedRequest = 100
-
-
-class ParseBuffer(object):
-
-    def __init__(self, data):
-        self.data = memoryview(data)
-        self.offset = 0
-
-    def unpack(self, struct_type):
-        value = struct_type.unpack(self.data[self.offset:self.offset + struct_type.size])
-        if len(value) == 1:
-            value = value[0]
-        self.offset += struct_type.size
-        return value
-
-    def unpack_cstr(self, size=None):
-        """Unpack a null-terminated string.
-
-        If size is given then always unpack that many bytes, otherwise unpack up to the first null.
-        """
-        field = self.data[self.offset:]
-        if size:
-            field = self.data[self.offset:self.offset + size]
-
-        # TODO: Is this better?
-        #value = data.split('\0', 1)[0]
-        value, _, _ = bytes(self.data[self.offset:]).partition(b'\0')
-
-        if size:
-            self.offset += size
-        else:
-            self.offset += len(value) + 1
-        return value.decode('utf-8')
-
-    def unpack_bytes(self, size):
-        value = bytes(self.data[self.offset:self.offset + size])
-        self.offset += size
-        return value
-
-
-class Version(collections.namedtuple('Version', ('major', 'minor', 'build', 'revision'))):
-
-    """NatNet version, with correct comparison operator.
-
-    Believe it or not, this is performance-critical."""
-
-    _version_t = struct.Struct('BBBB')
-
-    def __new__(cls, major, minor=0, build=0, revision=0):
-        return super(Version, cls).__new__(cls, major, minor, build, revision)
-
-    @classmethod
-    def deserialize(cls, data, version):
-        return cls(*data.unpack(cls._version_t))
+from .common import *
 
 
 @attrs(slots=True)
@@ -276,7 +185,10 @@ class MocapFrameMessage(object):
 
     @classmethod
     def deserialize(cls, data, version):
-        data = ParseBuffer(data)
+        """Deserialize a ServerInfo message.
+
+        :type data: ParseBuffer
+        :type version: Version"""
 
         frame_number = data.unpack(uint32_t)
 
@@ -319,86 +231,8 @@ class MocapFrameMessage(object):
         is_recording = (params & 0x01) != 0
         tracked_models_changed = (params & 0x02) != 0
 
+        # No idea what this is, but this is how long packets are
+        unknown = data.unpack(uint32_t)
+
         return cls(frame_number, markersets, unlabelled_markers, rigid_bodies, skeletons, labelled_markers,
                    force_plates, devices, timing_info, params)
-
-
-@attrs(slots=True)
-class ConnectionInfo(object):
-
-    data_port = attrib()  # type: int
-    multicast = attrib()  # type: bool
-    _multicast_address = attrib()  # type: bytes
-
-    @classmethod
-    def deserialize(cls, data, version):
-        data_port = data.unpack(uint16_t)
-        multicast = data.unpack(bool_t)
-        multicast_address = data.unpack_bytes(4)
-        return cls(data_port, multicast, multicast_address)
-
-    @property
-    def multicast_address(self):
-        """Return the multicast address as a string."""
-        # TODO: Should use this instead of hardcoding multicast address
-        return socket.inet_ntoa(self._multicast_address)
-
-
-@attrs(slots=True)
-class ServerInfoMessage(object):
-
-    app_name = attrib()  # type: str
-    app_version = attrib()  # type: Version
-    natnet_version = attrib()  # type: Version
-    high_resolution_clock_frequency = attrib()  # type: Optional[int]
-    connection_info = attrib()  # type: Optional[ConnectionInfo]
-
-    @classmethod
-    def deserialize(cls, data, version):
-        data = ParseBuffer(data)
-
-        app_name = data.unpack_cstr(256)
-        app_version = Version.deserialize(data, version)
-        natnet_version = Version.deserialize(data, version)
-
-        high_resolution_clock_frequency = None
-        connection_info = None
-        if version >= Version(3):
-            high_resolution_clock_frequency = data.unpack(uint64_t)
-            connection_info = ConnectionInfo.deserialize(data, version)
-
-        return cls(app_name, app_version, natnet_version, high_resolution_clock_frequency, connection_info)
-
-
-@attrs(slots=True)
-class ForcePlateDescription(object):
-    id_ = attrib()
-    serial_number = attrib()
-    width = attrib()
-    length = attrib()
-    origin = attrib()
-    calibration_matrix = attrib()
-    corners = attrib()
-    plate_type = attrib()
-    channel_data_type = attrib()
-    channels = attrib()
-    channel_names = attrib()
-
-    # TODO: Implement
-
-
-if __name__ == '__main__':
-    import yaml
-    # https://stackoverflow.com/a/8661021
-    represent_dict_order = lambda self, data: self.represent_mapping('tag:yaml.org,2002:map',
-                                                                     data.items())
-    yaml.add_representer(collections.OrderedDict, represent_dict_order)
-
-    data = open('../test/mocapframe_packet_v3.bin', 'rb').read()
-    frame = MocapFrameMessage.deserialize(data[4:], Version(3))
-    print(yaml.dump(attr.asdict(frame, dict_factory=collections.OrderedDict), default_flow_style=False))
-
-    import timeit
-    n = 10000
-    t = timeit.timeit('MocapFrameMessage.deserialize(data[4:], Version(3))', globals=locals(), number=n)
-    print('Parsing time: {} us'.format(t/n*1e6))
