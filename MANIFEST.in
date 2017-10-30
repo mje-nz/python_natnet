@@ -1,11 +1,20 @@
 graft src
 graft tests
+
 prune junk
 prune sdk
 prune .idea
+exclude src/natnet/comms.py
+
+include AUTHORS.rst
+include README.rst
+include LICENSE
 
 include .coveragerc
+include .cookiecutterrc
+include .editorconfig
 include tox.ini
-exclude src/natnet/comms.py
+include .travis.yml
+
 
 global-exclude *.py[cod] __pycache__ *.so *.dylib .cache
