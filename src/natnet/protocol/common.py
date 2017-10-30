@@ -100,4 +100,3 @@ class Version(collections.namedtuple('Version', ('major', 'minor', 'build', 'rev
 
     def serialize(self):
         return self._version_t.pack(*self)
-

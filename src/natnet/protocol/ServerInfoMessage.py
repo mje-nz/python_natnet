@@ -3,7 +3,7 @@
 import socket
 from typing import Optional
 
-from attr import attrs, attrib
+from attr import attrib, attrs
 
 from .common import *
 

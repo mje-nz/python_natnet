@@ -2,7 +2,7 @@
 
 import pytest
 
-from natnet.protocol import deserialize, MocapFrameMessage, Version
+from natnet.protocol import MocapFrameMessage, Version, deserialize
 
 
 def test_parse_mocapframe_packet_v3():

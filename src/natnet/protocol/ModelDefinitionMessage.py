@@ -1,7 +1,7 @@
 # coding: utf-8
 """This is only here because I typed it out by mistake and don't feel like doing it again."""
 
-from attr import attrs, attrib
+from attr import attrib, attrs
 
 from .common import *
 

@@ -1,6 +1,6 @@
 # coding: utf-8
 
-from attr import attrs, attrib
+from attr import attrib, attrs
 
 from .common import *
 

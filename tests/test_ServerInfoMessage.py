@@ -1,6 +1,6 @@
 """Tests for parsing ServerInfo messages."""
 
-from natnet.protocol import deserialize, ServerInfoMessage, Version
+from natnet.protocol import ServerInfoMessage, Version, deserialize
 
 
 def test_parse_serverinfo_packet_v3():

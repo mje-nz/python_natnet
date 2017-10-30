@@ -1,6 +1,6 @@
 """Tests for parsing and creating Connect messages."""
 
-from natnet.protocol import serialize, deserialize, ConnectMessage, Version
+from natnet.protocol import ConnectMessage, Version, deserialize, serialize
 
 
 def test_parse_connect_packet_v3():
@@ -19,4 +19,3 @@ def test_serialize_connect_message():
     actual = serialize(ConnectMessage('NatNetLib', Version(3), Version(3)))
 
     assert actual == expected
-

@@ -2,11 +2,9 @@
 """NatNet protocol parsing."""
 
 from .common import *
-
-from .MocapFrameMessage import MocapFrameMessage
 from .ConnectMessage import ConnectMessage
+from .MocapFrameMessage import MocapFrameMessage
 from .ServerInfoMessage import ServerInfoMessage
-
 
 message_mapping = [
     (MessageId.Connect, ConnectMessage),
