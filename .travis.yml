@@ -11,19 +11,19 @@ matrix:
         - TOXENV=check
     - python: '2.7'
       env:
-        - TOXENV=py27,report
+        - TOXENV=py27,report,codecov
     - python: '3.3'
       env:
-        - TOXENV=py33,report
+        - TOXENV=py33,report,codecov
     - python: '3.4'
       env:
-        - TOXENV=py34,report
+        - TOXENV=py34,report,codecov
     - python: '3.5'
       env:
-        - TOXENV=py35,report
+        - TOXENV=py35,report,codecov
     - python: '3.6'
       env:
-        - TOXENV=py36,report
+        - TOXENV=py36,report,codecov
 before_install:
   - python --version
   - uname -a

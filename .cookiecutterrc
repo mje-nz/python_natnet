@@ -2,14 +2,14 @@
 
 cookiecutter:
     _template: gh:ionelmc/cookiecutter-pylibrary
-    appveyor: 'no'
+    appveyor: 'yes'
     c_extension_function: ''
     c_extension_module: _natnet
     c_extension_optional: 'no'
     c_extension_support: 'no'
     codacy: 'no'
     codeclimate: 'no'
-    codecov: 'no'
+    codecov: 'yes'
     command_line_interface: 'no'
     command_line_interface_bin_name: ''
     coveralls: 'no'

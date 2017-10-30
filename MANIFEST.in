@@ -1,5 +1,6 @@
 graft src
 graft tests
+graft ci
 
 prune junk
 prune sdk
@@ -15,6 +16,7 @@ include .cookiecutterrc
 include .editorconfig
 include tox.ini
 include .travis.yml
+include appveyor.yml
 
 
 global-exclude *.py[cod] __pycache__ *.so *.dylib .cache
