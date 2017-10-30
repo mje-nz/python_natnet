@@ -1,6 +1,6 @@
 """Tests for Version class."""
 
-from optitrack.protocol import Version, ParseBuffer
+from natnet.protocol import Version, ParseBuffer
 
 
 def test_construct_default():

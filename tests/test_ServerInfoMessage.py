@@ -1,6 +1,6 @@
 """Tests for parsing ServerInfo messages."""
 
-from optitrack.protocol import deserialize, ServerInfoMessage, Version
+from natnet.protocol import deserialize, ServerInfoMessage, Version
 
 
 def test_parse_serverinfo_packet_v3():

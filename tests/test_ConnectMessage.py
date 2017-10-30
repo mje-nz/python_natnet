@@ -1,6 +1,6 @@
 """Tests for parsing and creating Connect messages."""
 
-from optitrack.protocol import serialize, deserialize, ConnectMessage, Version
+from natnet.protocol import serialize, deserialize, ConnectMessage, Version
 
 
 def test_parse_connect_packet_v3():
