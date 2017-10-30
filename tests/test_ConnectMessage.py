@@ -1,6 +1,6 @@
 """Tests for parsing and creating Connect messages."""
 
-from natnet.protocol import ConnectMessage, Version, deserialize, serialize
+from natnet.protocol import ConnectMessage, Version, deserialize, serialize  # noqa: F401
 
 
 def test_parse_connect_packet_v3():

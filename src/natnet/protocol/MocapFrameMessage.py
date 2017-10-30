@@ -1,10 +1,10 @@
 # coding: utf-8
 
-from typing import Optional
+from typing import Optional  # noqa: F401
 
 from attr import attrib, attrs
 
-from .common import *
+from .common import Version, double_t, float_t, int16_t, quaternion_t, uint16_t, uint32_t, uint64_t, vector3_t
 
 
 @attrs(slots=True)
@@ -28,7 +28,7 @@ class RigidBody(object):
     position = attrib()
     orientation = attrib()
     mean_error = attrib()  # type: Optional[float]
-    params = attrib()  # type: Optional[int]
+    _params = attrib()  # type: Optional[int]
 
     @classmethod
     def deserialize(cls, data, version):
@@ -37,15 +37,15 @@ class RigidBody(object):
         orientation = data.unpack(quaternion_t)
 
         if version < Version(3):
-            # TODO: Store these
+            # TODO: Store these?
             marker_count = data.unpack(uint32_t)
-            marker_positions = [data.unpack(vector3_t) for i in range(marker_count)]
+            marker_positions = [data.unpack(vector3_t) for i in range(marker_count)]  # noqa: F841
 
             if version >= Version(2):
-                marker_ids = [data.unpack(uint32_t) for i in range(marker_count)]
-                marker_sizes = [data.unpack(float_t) for i in range(marker_count)]
+                marker_ids = [data.unpack(uint32_t) for i in range(marker_count)]  # noqa: F841
+                marker_sizes = [data.unpack(float_t) for i in range(marker_count)]  # noqa: F841
 
-            padding = data.unpack(uint32_t)
+            padding = data.unpack(uint32_t)  # noqa: F841
 
         mean_error = None
         if version >= Version(2):
@@ -55,10 +55,13 @@ class RigidBody(object):
         if version >= Version(2, 6) or version.major == 0:
             # TODO: Shouldn't this be a uint16_t?
             params = data.unpack(int16_t)
-            # TODO: Store this
-            tracking_valid = (params & 0x01) != 0
 
         return cls(id_, position, orientation, mean_error, params)
+
+    @property
+    def tracking_valid(self):
+        assert self._params is not None
+        return (self._params & 0x01) != 0
 
 
 @attrs(slots=True)
@@ -82,7 +85,7 @@ class LabelledMarker(object):
     marker_id = attrib()  # type: int
     position = attrib()
     size = attrib()  # type: float
-    params = attrib()  # type: Optional[int]
+    _params = attrib()  # type: Optional[int]
     residual = attrib()  # type: Optional[float]
 
     @classmethod
@@ -99,16 +102,27 @@ class LabelledMarker(object):
         if version >= Version(2, 6) or version.major == 0:
             # TODO: Shouldn't this be a uint16_t?
             params = data.unpack(int16_t)
-            # TODO: Store these
-            occluded = (params & 0x01) != 0
-            point_cloud_solved = (params & 0x02) != 0
-            model_solved = (params & 0x04) != 0
 
         residual = None
         if version >= Version(3) or version.major == 0:
             residual = data.unpack(float_t)
 
         return cls(model_id, marker_id, position, size, params, residual)
+
+    @property
+    def occluded(self):
+        assert self._params is not None
+        return (self._params & 0x01) != 0
+
+    @property
+    def point_cloud_solved(self):
+        assert self._params is not None
+        return (self._params & 0x02) != 0
+
+    @property
+    def model_solved_solved(self):
+        assert self._params is not None
+        return (self._params & 0x04) != 0
 
 
 @attrs(slots=True)
@@ -181,7 +195,7 @@ class MocapFrameMessage(object):
     force_plates = attrib()  # type: list[Device]
     devices = attrib()  # type:  list[Device]
     timing_info = attrib()  # type: TimingInfo
-    params = attrib()  # type: int
+    _params = attrib()  # type: int
 
     @classmethod
     def deserialize(cls, data, version):
@@ -228,11 +242,19 @@ class MocapFrameMessage(object):
 
         # TODO: Shouldn't this be a uint16_t?
         params = data.unpack(int16_t)
-        is_recording = (params & 0x01) != 0
-        tracked_models_changed = (params & 0x02) != 0
 
         # No idea what this is, but this is how long packets are
-        unknown = data.unpack(uint32_t)
+        unknown = data.unpack(uint32_t)  # noqa: F841
 
         return cls(frame_number, markersets, unlabelled_markers, rigid_bodies, skeletons, labelled_markers,
                    force_plates, devices, timing_info, params)
+
+    @property
+    def is_recording(self):
+        assert self._params is not None
+        return (self._params & 0x01) != 0
+
+    @property
+    def tracked_models_changed(self):
+        assert self._params is not None
+        return (self._params & 0x02) != 0

@@ -3,8 +3,6 @@
 
 from attr import attrib, attrs
 
-from .common import *
-
 
 @attrs(slots=True)
 class ForcePlateDescription(object):

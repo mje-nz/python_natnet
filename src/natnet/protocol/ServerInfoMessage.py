@@ -1,11 +1,11 @@
 # coding: utf-8
 
 import socket
-from typing import Optional
+from typing import Optional  # noqa: F401
 
 from attr import attrib, attrs
 
-from .common import *
+from .common import Version, bool_t, uint16_t, uint64_t
 
 
 @attrs(slots=True)

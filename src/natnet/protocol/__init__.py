@@ -1,7 +1,9 @@
 # coding: utf-8
 """NatNet protocol parsing."""
 
-from .common import *
+__all__ = ['ConnectMessage', 'MocapFrameMessage', 'ServerInfoMessage', 'serialize', 'deserialize']
+
+from .common import MessageId, ParseBuffer, Version, uint16_t
 from .ConnectMessage import ConnectMessage
 from .MocapFrameMessage import MocapFrameMessage
 from .ServerInfoMessage import ServerInfoMessage

@@ -2,7 +2,7 @@
 
 from attr import attrib, attrs
 
-from .common import *
+from .common import Version
 
 
 @attrs(slots=True)

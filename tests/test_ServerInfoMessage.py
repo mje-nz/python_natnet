@@ -1,6 +1,6 @@
 """Tests for parsing ServerInfo messages."""
 
-from natnet.protocol import ServerInfoMessage, Version, deserialize
+from natnet.protocol import ServerInfoMessage, Version, deserialize  # noqa: F401
 
 
 def test_parse_serverinfo_packet_v3():
@@ -15,5 +15,5 @@ def test_parse_serverinfo_packet_v3():
     assert info.natnet_version == Version(3)
     assert info.high_resolution_clock_frequency == 3312787
     assert info.connection_info.data_port == 1511
-    assert info.connection_info.multicast == True
+    assert info.connection_info.multicast == True  # noqa: E712
     assert info.connection_info.multicast_address == u'239.255.42.99'

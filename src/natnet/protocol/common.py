@@ -27,7 +27,6 @@ class MessageId(enum.IntEnum):
     UnrecognizedRequest = 0x100  # NatNetTypes gives this as decimal 100, but that's incorrect
 
 
-
 # Field types
 bool_t = struct.Struct('?')
 int16_t = struct.Struct('<h')
@@ -66,9 +65,9 @@ class ParseBuffer(object):
         if size:
             field = self.data[self.offset:self.offset + size]
 
-        # TODO: Is this better?
-        #value = data.split('\0', 1)[0]
-        value, _, _ = self.data[self.offset:].tobytes().partition(b'\0')
+        # TODO: Would this be better?
+        # value = data.split('\0', 1)[0]
+        value, _, _ = field.tobytes().partition(b'\0')
 
         if size:
             self.offset += size

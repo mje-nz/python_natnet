@@ -2,7 +2,7 @@
 
 import pytest
 
-from natnet.protocol import MocapFrameMessage, Version, deserialize
+from natnet.protocol import MocapFrameMessage, Version, deserialize  # noqa: F401
 
 
 def test_parse_mocapframe_packet_v3():
@@ -35,7 +35,7 @@ def test_parse_mocapframe_packet_v3():
     assert marker0.marker_id == 1
     assert marker0.position == pytest.approx((0.1272162, 1.5050275, -0.8858284))
     assert marker0.size == pytest.approx(0.02143982)
-    assert marker0.params == 10
+    assert marker0._params == 10
     assert marker0.residual == pytest.approx(0.0002074828)
     # Assume markers 1-4 are correct if 0 and 5 are
     marker5 = frame.labelled_markers[5]
@@ -43,7 +43,7 @@ def test_parse_mocapframe_packet_v3():
     assert marker5.marker_id == 50007
     assert marker5.position == pytest.approx((0.1708117, 1.5076591, -0.8402346))
     assert marker5.size == pytest.approx(0.02015734)
-    assert marker5.params == 18
+    assert marker5._params == 18
     assert marker5.residual == pytest.approx(0.0005593782)
 
     assert len(frame.force_plates) == 0
@@ -56,4 +56,4 @@ def test_parse_mocapframe_packet_v3():
     assert frame.timing_info.camera_data_received_timestamp == 1416497745808
     assert frame.timing_info.transmit_timestamp == 1416497748722
 
-    assert frame.params == 0
+    assert frame._params == 0
