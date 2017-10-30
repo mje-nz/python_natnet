@@ -32,6 +32,10 @@ NatNet 3 client
 Development
 ===========
 
-To run the all tests run::
+To run the checks and tests run::
 
     tox
+
+To run the most important checks and tests automatically before you commit, run::
+
+    ln -s $(pwd)/pre-commit-hook .git/hooks/pre-commit

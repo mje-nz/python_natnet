@@ -6,6 +6,7 @@ prune junk
 prune sdk
 prune .idea
 exclude src/natnet/comms.py
+exclude pre-commit-hook
 
 include AUTHORS.rst
 include README.rst
@@ -15,8 +16,9 @@ include .coveragerc
 include .cookiecutterrc
 include .editorconfig
 include tox.ini
-include .travis.yml
-include appveyor.yml
+
+exclude .travis.yml
+exclude appveyor.yml
 
 
 global-exclude *.py[cod] __pycache__ *.so *.dylib .cache

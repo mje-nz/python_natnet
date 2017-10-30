@@ -1,0 +1,14 @@
+#!/bin/bash
+printf "Running tox... "
+
+output=$(tox -e check,py36)
+ret=$?
+
+if [ $ret -eq 0 ]; then
+    echo "ok"
+else
+    echo "fail"
+    echo
+    echo "$output"
+fi
+exit $ret
