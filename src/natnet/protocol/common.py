@@ -68,7 +68,7 @@ class ParseBuffer(object):
 
         # TODO: Is this better?
         #value = data.split('\0', 1)[0]
-        value, _, _ = bytes(self.data[self.offset:]).partition(b'\0')
+        value, _, _ = self.data[self.offset:].tobytes().partition(b'\0')
 
         if size:
             self.offset += size
@@ -78,7 +78,7 @@ class ParseBuffer(object):
 
     def unpack_bytes(self, size):
         """Unpack a fixed-length field of bytes."""
-        value = bytes(self.data[self.offset:self.offset + size])
+        value = self.data[self.offset:self.offset + size].tobytes()
         self.offset += size
         return value
 

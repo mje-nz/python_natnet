@@ -2,5 +2,10 @@
 .idea/task.xml
 .idea/markdown-navigator*
 *.pyc
-.cache/*
-tests/.cache/*
+*.cache
+.tox
+.coverage
+*.egg-info
+build/
+dist/
+htmlcov/

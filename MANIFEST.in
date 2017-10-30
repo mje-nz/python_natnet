@@ -1,0 +1,11 @@
+graft src
+graft tests
+prune junk
+prune sdk
+prune .idea
+
+include .coveragerc
+include tox.ini
+exclude src/natnet/comms.py
+
+global-exclude *.py[cod] __pycache__ *.so *.dylib .cache
