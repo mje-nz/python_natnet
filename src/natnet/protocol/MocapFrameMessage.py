@@ -20,6 +20,10 @@ class Markerset(object):
         markers = [data.unpack(vector3_t) for i in range(marker_count)]
         return Markerset(name, markers)
 
+    def serialize(self):
+        return self.name.encode('utf-8') + b'\0' + uint32_t.pack(len(self.markers)) + \
+               b''.join(vector3_t.pack(*marker) for marker in self.markers)
+
 
 @attrs(slots=True)
 class RigidBody(object):
@@ -120,7 +124,7 @@ class LabelledMarker(object):
         return (self._params & 0x02) != 0
 
     @property
-    def model_solved_solved(self):
+    def model_solved(self):
         assert self._params is not None
         return (self._params & 0x04) != 0
 

@@ -2,7 +2,8 @@
 
 import pytest
 
-from natnet.protocol import MocapFrameMessage, Version, deserialize  # noqa: F401
+from natnet.protocol import MocapFrameMessage, ParseBuffer, Version, deserialize  # noqa: F401
+from natnet.protocol.MocapFrameMessage import LabelledMarker, Markerset  # noqa: F401
 
 
 def test_parse_mocapframe_packet_v3():
@@ -26,16 +27,20 @@ def test_parse_mocapframe_packet_v3():
     assert body.position == pytest.approx((0.1744466, 1.4471314, -0.7343040))
     assert body.orientation == pytest.approx((-0.05459423, 0.5099482, 0.04370357, -0.8573577))
     assert body.mean_error == pytest.approx(0.0005152203)
+    assert body.tracking_valid
 
     assert len(frame.skeletons) == 0
 
     assert len(frame.labelled_markers) == 6
-    marker0 = frame.labelled_markers[0]
+    marker0 = frame.labelled_markers[0]  # type: LabelledMarker
     assert marker0.model_id == 2
     assert marker0.marker_id == 1
     assert marker0.position == pytest.approx((0.1272162, 1.5050275, -0.8858284))
     assert marker0.size == pytest.approx(0.02143982)
     assert marker0._params == 10
+    assert not marker0.occluded
+    assert marker0.point_cloud_solved
+    assert not marker0.model_solved
     assert marker0.residual == pytest.approx(0.0002074828)
     # Assume markers 1-4 are correct if 0 and 5 are
     marker5 = frame.labelled_markers[5]
@@ -44,6 +49,9 @@ def test_parse_mocapframe_packet_v3():
     assert marker5.position == pytest.approx((0.1708117, 1.5076591, -0.8402346))
     assert marker5.size == pytest.approx(0.02015734)
     assert marker5._params == 18
+    assert not marker0.occluded
+    assert marker0.point_cloud_solved
+    assert not marker0.model_solved
     assert marker5.residual == pytest.approx(0.0005593782)
 
     assert len(frame.force_plates) == 0
@@ -57,3 +65,12 @@ def test_parse_mocapframe_packet_v3():
     assert frame.timing_info.transmit_timestamp == 1416497748722
 
     assert frame._params == 0
+    assert not frame.is_recording
+    assert not frame.tracked_models_changed
+
+
+def test_serialize_and_deserialize_markerset():
+    """Just need something that tests ParseBuffer.unpack_cstr without a size."""
+    markerset = Markerset('test', [(1.0, 2.0, 3.0)])
+    data = ParseBuffer(markerset.serialize())
+    assert Markerset.deserialize(data, Version(3)) == markerset
