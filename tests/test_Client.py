@@ -2,16 +2,12 @@
 
 import timeit
 
+import mock
 import pytest
 
 import natnet
 from natnet.comms import Connection
 from natnet.protocol import MessageId
-
-try:
-    from unittest import mock
-except ImportError:
-    import mock
 
 
 @pytest.fixture(scope='module')
