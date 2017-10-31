@@ -64,7 +64,7 @@ class Connection(object):
 
         for s in exceptional:
             which = 'command' if s is self._command_socket else 'data'
-            raise ConnectionError('Something went wrong with the', which, 'socket')
+            raise IOError('Something went wrong with the', which, 'socket')
 
         data = None
         received_time = None
