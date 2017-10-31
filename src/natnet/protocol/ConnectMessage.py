@@ -8,7 +8,7 @@ from .common import Version
 @attrs(slots=True)
 class ConnectMessage(object):
 
-    payload = attrib()  # type: str
+    payload = attrib(default='')  # type: str
 
     # Not sure why there are two of these, but the SDK sets them both to (3, 0, 0, 0).  Could be min
     # and max protocol version supported?

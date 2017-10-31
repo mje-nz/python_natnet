@@ -5,7 +5,6 @@ graft ci
 prune junk
 prune sdk
 prune .idea
-exclude src/natnet/comms.py
 exclude pre-commit-hook
 
 include AUTHORS.rst
