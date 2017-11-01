@@ -18,10 +18,10 @@ class FakeConnection(object):
     Inject this into a Client to test receiving mocap frames without Motive running. """
 
     _frame_packet = attr.ib()  # type: bytes
-    _delay = attr.ib(0.1)  # type: float
 
     def wait_for_packet(self, timeout=None):
-        time.sleep(self._delay)
+        if timeout:
+            time.sleep(timeout)
         return self._frame_packet, timeit.default_timer()
 
     def wait_for_packet_with_id(self, id_):

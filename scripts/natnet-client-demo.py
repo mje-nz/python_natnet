@@ -1,10 +1,36 @@
 # coding: utf-8
+"""In fake mode, the timeout is used as the delay between publishing packets.  This is convenient
+for profiling.  In IPython, use this command to profile packet deserialisation:
+    %run -p scripts/natnet-client-demo.py fake 0 True
+"""
+
+import attr
 
 import natnet
 
+@attr.s
+class ClientApp(object):
 
-def main(server_name):
-    def callback(rigid_bodies, markers, timing):
+    _client = attr.ib()
+    _timeout = attr.ib()
+    _quiet = attr.ib()
+
+    @classmethod
+    def connect(cls, server_name, timeout, quiet):
+        if server_name == 'fake':
+            client = natnet.fakes.FakeClient.fake_connect()
+        else:
+            client = natnet.Client.connect(server_name)
+        return cls(client, timeout, quiet)
+
+    def run(self):
+        if self._quiet:
+            self._client.set_callback(self.callback_quiet)
+        else:
+            self._client.set_callback(self.callback)
+        self._client.spin(self._timeout)
+
+    def callback(self, rigid_bodies, markers, timing):
         """
 
         :type rigid_bodies: list[RigidBody]
@@ -30,12 +56,16 @@ def main(server_name):
             1000*timing.processing_latency
         ))
 
-    if server_name == 'fake':
-        client = natnet.fakes.FakeClient.fake_connect()
-    else:
-        client = natnet.Client.connect(server_name)
-    client.set_callback(callback)
-    client.spin()
+    def callback_quiet(self, *args):
+        print('.')
+
+
+def main(server_name, timeout=0.1, quiet=False):
+    timeout = float(timeout)
+    if timeout == 0:
+        timeout = None
+    app = ClientApp.connect(server_name, timeout, bool(quiet))
+    app.run()
 
 
 if __name__ == '__main__':

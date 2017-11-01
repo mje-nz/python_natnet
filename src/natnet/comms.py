@@ -75,11 +75,11 @@ class Connection(object):
 
         return data, received_time
 
-    def wait_for_packet_with_id(self, id_):
+    def wait_for_packet_with_id(self, id_, timeout=None):
         """Return the next packet with the given ID, discarding any others."""
         # TODO: There's probably a better way of doing this, but it'll do until I implement the rest
         while True:
-            packet, received_time = self.wait_for_packet()
+            packet, received_time = self.wait_for_packet(timeout)
             received_id, = protocol.uint16_t.unpack(packet[:2])
             if received_id == id_:
                 return packet, received_time
@@ -154,11 +154,14 @@ class Client(object):
         :type callback: (list[RigidBody], list[LabelledMarker], TimingAndLatency) -> None"""
         self._callback = callback
 
-    def spin(self):
+    def spin(self, timeout=None):
         """Receive messages and dispatch to handlers."""
         try:
             while True:
-                packet, received_time = self._conn.wait_for_packet()
+                packet, received_time = self._conn.wait_for_packet(timeout)
+                if packet is None:
+                    print('Timed out waiting for packet')
+                    continue
                 message_id, payload_data = protocol.deserialize_header(packet)
                 if message_id == protocol.MessageId.FrameOfData:
                     if self._callback:
