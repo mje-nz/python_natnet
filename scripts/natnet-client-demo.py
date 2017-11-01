@@ -22,8 +22,8 @@ def main(server_name):
         if markers:
             print('Markers')
             for m in markers:
-                print('\t Model {} marker {}: ({: 5.2f}, {: 5.2f}, {: 5.2f})'.format(
-                    m.model_id, m.marker_id, *m.position
+                print('\t Model {} marker {}: size {:.4f}mm, pos ({: 5.2f}, {: 5.2f}, {: 5.2f}), '.format(
+                    m.model_id, m.marker_id, 1000*m.size, *m.position
                 ))
         print('\t Latency: {:.1f}ms (system {:.1f}ms, transit {:.1f}ms, processing {:.2f}ms)'.format(
             1000*timing.latency, 1000*timing.system_latency, 1000*timing.transit_latency,
