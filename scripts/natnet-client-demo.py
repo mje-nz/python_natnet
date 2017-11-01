@@ -1,8 +1,9 @@
 # coding: utf-8
+
 import natnet
 
 
-def main(server_ip):
+def main(server_name):
     def callback(rigid_bodies, markers, timing):
         """
 
@@ -24,12 +25,15 @@ def main(server_ip):
                 print('\t Model {} marker {}: ({: 5.2f}, {: 5.2f}, {: 5.2f})'.format(
                     m.model_id, m.marker_id, *m.position
                 ))
-        print('\t Latency: {:.1f}ms (system {:.1f}ms, transit {:.1f}ms, processing {:.1f}ms)'.format(
+        print('\t Latency: {:.1f}ms (system {:.1f}ms, transit {:.1f}ms, processing {:.2f}ms)'.format(
             1000*timing.latency, 1000*timing.system_latency, 1000*timing.transit_latency,
             1000*timing.processing_latency
         ))
 
-    client = natnet.Client.connect(server_ip)
+    if server_name == 'fake':
+        client = natnet.fakes.FakeClient.fake_connect()
+    else:
+        client = natnet.Client.connect(server_name)
     client.set_callback(callback)
     client.spin()
 
