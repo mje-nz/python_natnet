@@ -1,6 +1,6 @@
 graft src
 graft tests
-graft ci
+graft scripts
 
 prune junk
 prune sdk

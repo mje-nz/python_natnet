@@ -2,6 +2,7 @@
 source =
    src/natnet
    */site-packages/natnet
+   *\site-packages\natnet
 
 [run]
 # Measure branch coverage
