@@ -1,19 +1,19 @@
 # coding: utf-8
 
-from attr import attrib, attrs
+import attr
 
 from .common import Version
 
 
-@attrs(slots=True)
+@attr.s
 class ConnectMessage(object):
 
-    payload = attrib(default='')  # type: str
+    payload = attr.ib(default='')  # type: str
 
     # Not sure why there are two of these, but the SDK sets them both to (3, 0, 0, 0).  Could be min
     # and max protocol version supported?
-    version1 = attrib(default=Version(3))  # type: Version
-    version2 = attrib(default=Version(3))  # type: Version
+    version1 = attr.ib(default=Version(3))  # type: Version
+    version2 = attr.ib(default=Version(3))  # type: Version
 
     @classmethod
     def deserialize(cls, data, version):

@@ -1,19 +1,24 @@
 # coding: utf-8
 
-import socket
-from typing import Optional  # noqa: F401
+try:
+    # Only need this for type annotations
+    from typing import Optional  # noqa: F401
+except ImportError:
+    pass
 
-from attr import attrib, attrs
+import socket
+
+import attr
 
 from .common import Version, bool_t, uint16_t, uint64_t
 
 
-@attrs(slots=True)
+@attr.s
 class ConnectionInfo(object):
 
-    data_port = attrib()  # type: int
-    multicast = attrib()  # type: bool
-    _multicast_address = attrib()  # type: bytes
+    data_port = attr.ib()  # type: int
+    multicast = attr.ib()  # type: bool
+    _multicast_address = attr.ib()  # type: bytes
 
     @classmethod
     def deserialize(cls, data, version):
@@ -29,14 +34,14 @@ class ConnectionInfo(object):
         return socket.inet_ntoa(self._multicast_address)
 
 
-@attrs(slots=True)
+@attr.s
 class ServerInfoMessage(object):
 
-    app_name = attrib()  # type: str
-    app_version = attrib()  # type: Version
-    natnet_version = attrib()  # type: Version
-    high_resolution_clock_frequency = attrib()  # type: Optional[int]
-    connection_info = attrib()  # type: Optional[ConnectionInfo]
+    app_name = attr.ib()  # type: str
+    app_version = attr.ib()  # type: Version
+    natnet_version = attr.ib()  # type: Version
+    high_resolution_clock_frequency = attr.ib()  # type: Optional[int]
+    connection_info = attr.ib()  # type: Optional[ConnectionInfo]
 
     @classmethod
     def deserialize(cls, data, version):

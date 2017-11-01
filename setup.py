@@ -47,7 +47,7 @@ setup(
     ],
     keywords='natnet NaturalPoint Optitrack motion capure mocap',
     install_requires=[
-        'attrs>=17.2'
+        'attrs>=15.2'
     ],
     extras_require={
         ':python_version<"3.5"': ['typing'],

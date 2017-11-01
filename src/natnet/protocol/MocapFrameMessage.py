@@ -1,17 +1,21 @@
 # coding: utf-8
 
-from typing import Optional  # noqa: F401
+try:
+    # Only need this for type annotations
+    from typing import Optional  # noqa: F401
+except ImportError:
+    pass
 
-from attr import attrib, attrs
+import attr
 
 from .common import Version, double_t, float_t, int16_t, quaternion_t, uint16_t, uint32_t, uint64_t, vector3_t
 
 
-@attrs(slots=True)
+@attr.s
 class Markerset(object):
 
-    name = attrib()  # type: str
-    markers = attrib()
+    name = attr.ib()  # type: str
+    markers = attr.ib()
 
     @classmethod
     def deserialize(cls, data, version):
@@ -25,14 +29,14 @@ class Markerset(object):
                b''.join(vector3_t.pack(*marker) for marker in self.markers)
 
 
-@attrs(slots=True)
+@attr.s
 class RigidBody(object):
 
-    id_ = attrib()  # type: int
-    position = attrib()
-    orientation = attrib()
-    mean_error = attrib()  # type: Optional[float]
-    _params = attrib()  # type: Optional[int]
+    id_ = attr.ib()  # type: int
+    position = attr.ib()
+    orientation = attr.ib()
+    mean_error = attr.ib()  # type: Optional[float]
+    _params = attr.ib()  # type: Optional[int]
 
     @classmethod
     def deserialize(cls, data, version):
@@ -68,11 +72,11 @@ class RigidBody(object):
         return (self._params & 0x01) != 0
 
 
-@attrs(slots=True)
+@attr.s
 class Skeleton(object):
 
-    id_ = attrib()  # type: int
-    rigid_bodies = attrib()  # type: list[RigidBody]
+    id_ = attr.ib()  # type: int
+    rigid_bodies = attr.ib()  # type: list[RigidBody]
 
     @classmethod
     def deserialize(cls, data, version):
@@ -82,15 +86,15 @@ class Skeleton(object):
         return cls(id_, rigid_bodies)
 
 
-@attrs(slots=True)
+@attr.s
 class LabelledMarker(object):
 
-    model_id = attrib()  # type: int
-    marker_id = attrib()  # type: int
-    position = attrib()
-    size = attrib()  # type: float
-    _params = attrib()  # type: Optional[int]
-    residual = attrib()  # type: Optional[float]
+    model_id = attr.ib()  # type: int
+    marker_id = attr.ib()  # type: int
+    position = attr.ib()
+    size = attr.ib()  # type: float
+    _params = attr.ib()  # type: Optional[int]
+    residual = attr.ib()  # type: Optional[float]
 
     @classmethod
     def deserialize(cls, data, version):
@@ -129,10 +133,10 @@ class LabelledMarker(object):
         return (self._params & 0x04) != 0
 
 
-@attrs(slots=True)
+@attr.s
 class AnalogChannelData(object):
 
-    values = attrib()  # type: list[int]
+    values = attr.ib()  # type: list[int]
 
     @classmethod
     def deserialize(cls, data, version):
@@ -141,11 +145,11 @@ class AnalogChannelData(object):
         return cls(values)
 
 
-@attrs(slots=True)
+@attr.s
 class Device(object):
 
-    id_ = attrib()  # type: int
-    channels = attrib()  # type: list[AnalogChannelData]
+    id_ = attr.ib()  # type: int
+    channels = attr.ib()  # type: list[AnalogChannelData]
 
     @classmethod
     def deserialize(cls, data, version):
@@ -155,15 +159,15 @@ class Device(object):
         return cls(id_, channels)
 
 
-@attrs(slots=True)
+@attr.s
 class TimingInfo(object):
 
-    timecode = attrib()  # type: int
-    timecode_subframe = attrib()  # type: int
-    timestamp = attrib()  # type: float
-    camera_mid_exposure_timestamp = attrib()  # type: Optional[int]
-    camera_data_received_timestamp = attrib()  # type: Optional[int]
-    transmit_timestamp = attrib()  # type: Optional[int]
+    timecode = attr.ib()  # type: int
+    timecode_subframe = attr.ib()  # type: int
+    timestamp = attr.ib()  # type: float
+    camera_mid_exposure_timestamp = attr.ib()  # type: Optional[int]
+    camera_data_received_timestamp = attr.ib()  # type: Optional[int]
+    transmit_timestamp = attr.ib()  # type: Optional[int]
 
     @classmethod
     def deserialize(cls, data, version):
@@ -187,19 +191,19 @@ class TimingInfo(object):
                    camera_data_received_timestamp, transmit_timestamp)
 
 
-@attrs(slots=True)
+@attr.s
 class MocapFrameMessage(object):
 
-    frame_number = attrib()  # type: int
-    markersets = attrib()  # type: list[Markerset]
-    unlabelled_markers = attrib()
-    rigid_bodies = attrib()  # type: list[RigidBody]
-    skeletons = attrib()  # type: list[Skeleton]
-    labelled_markers = attrib()  # type: list[LabelledMarker]
-    force_plates = attrib()  # type: list[Device]
-    devices = attrib()  # type:  list[Device]
-    timing_info = attrib()  # type: TimingInfo
-    _params = attrib()  # type: int
+    frame_number = attr.ib()  # type: int
+    markersets = attr.ib()  # type: list[Markerset]
+    unlabelled_markers = attr.ib()
+    rigid_bodies = attr.ib()  # type: list[RigidBody]
+    skeletons = attr.ib()  # type: list[Skeleton]
+    labelled_markers = attr.ib()  # type: list[LabelledMarker]
+    force_plates = attr.ib()  # type: list[Device]
+    devices = attr.ib()  # type:  list[Device]
+    timing_info = attr.ib()  # type: TimingInfo
+    _params = attr.ib()  # type: int
 
     @classmethod
     def deserialize(cls, data, version):

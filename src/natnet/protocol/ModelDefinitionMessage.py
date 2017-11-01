@@ -1,21 +1,21 @@
 # coding: utf-8
 """This is only here because I typed it out by mistake and don't feel like doing it again."""
 
-from attr import attrib, attrs
+import attr
 
 
-@attrs(slots=True)
+@attr.s
 class ForcePlateDescription(object):
-    id_ = attrib()
-    serial_number = attrib()
-    width = attrib()
-    length = attrib()
-    origin = attrib()
-    calibration_matrix = attrib()
-    corners = attrib()
-    plate_type = attrib()
-    channel_data_type = attrib()
-    channels = attrib()
-    channel_names = attrib()
+    id_ = attr.ib()
+    serial_number = attr.ib()
+    width = attr.ib()
+    length = attr.ib()
+    origin = attr.ib()
+    calibration_matrix = attr.ib()
+    corners = attr.ib()
+    plate_type = attr.ib()
+    channel_data_type = attr.ib()
+    channels = attr.ib()
+    channel_names = attr.ib()
 
     # TODO: Implement

@@ -6,7 +6,7 @@ environment:
   global:
     WITH_COMPILER: 'cmd /E:ON /V:ON /C .\ci\appveyor-with-compiler.cmd'
   matrix:
-    - TOXENV: check
+    - TOXENV: check-py27
       TOXPYTHON: C:\Python27\python.exe
       PYTHON_HOME: C:\Python27
       PYTHON_VERSION: '2.7'

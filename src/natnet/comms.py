@@ -5,18 +5,18 @@ import socket
 import struct
 import timeit
 
-from attr import attrib, attrs
+import attr
 
 from . import protocol
 from .protocol.MocapFrameMessage import LabelledMarker, RigidBody, TimingInfo  # noqa: F401
 
 
-@attrs(slots=True)
+@attr.s
 class Connection(object):
 
-    _command_socket = attrib()
-    _data_socket = attrib()
-    _command_address = attrib()
+    _command_socket = attr.ib()
+    _data_socket = attr.ib()
+    _command_address = attr.ib()
 
     def bind_data_socket(self, multicast_addr, data_port):
         # Join multicast group
@@ -88,20 +88,20 @@ class Connection(object):
         self._command_socket.sendto(packet, self._command_address)
 
 
-@attrs
+@attr.s
 class TimestampAndLatency(object):
 
     # Camera mid-exposure timestamp (from local clock, *not* server clock)
-    timestamp = attrib()  # type: float
+    timestamp = attr.ib()  # type: float
 
     # Time from camera mid-exposure to Motive transmitting frame
-    system_latency = attrib()  # type: float
+    system_latency = attr.ib()  # type: float
 
     # Time from transmitting frame to receiving frame
-    transit_latency = attrib()  # type: float
+    transit_latency = attr.ib()  # type: float
 
     # Time from receiving frame to calling callback
-    processing_latency = attrib()  # type: float
+    processing_latency = attr.ib()  # type: float
 
     @classmethod
     def calculate(cls, received_timestamp, timing_info, server_info):
@@ -125,12 +125,12 @@ class TimestampAndLatency(object):
         return self.system_latency + self.transit_latency + self.processing_latency
 
 
-@attrs
+@attr.s
 class Client(object):
 
-    _conn = attrib()  # type: Connection
-    _server_info = attrib()  # type: protocol.ServerInfoMessage
-    _callback = attrib(None)
+    _conn = attr.ib()  # type: Connection
+    _server_info = attr.ib()  # type: protocol.ServerInfoMessage
+    _callback = attr.ib(None)
 
     @classmethod
     def connect(cls, server_ip):
