@@ -29,6 +29,14 @@ NatNet 3 client
 * Free software: BSD 3-Clause License
 
 
+Installation
+============
+
+For now::
+
+    python setup.py install
+
+
 Development
 ===========
 
