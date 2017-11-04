@@ -154,6 +154,9 @@ class Client(object):
         :type callback: (list[RigidBody], list[LabelledMarker], TimingAndLatency) -> None"""
         self._callback = callback
 
+    def _convert_server_timestamp(self, timestamp_ticks):
+        return float(timestamp_ticks)/self._server_info.high_resolution_clock_frequency
+
     def spin(self, timeout=None):
         """Receive messages and dispatch to handlers."""
         try:

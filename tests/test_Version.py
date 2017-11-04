@@ -1,6 +1,7 @@
 """Tests for Version class."""
 
-from natnet.protocol import ParseBuffer, Version
+from natnet import Version
+from natnet.protocol.common import ParseBuffer
 
 
 def test_construct_default():

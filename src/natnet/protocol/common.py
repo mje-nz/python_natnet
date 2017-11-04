@@ -4,6 +4,8 @@ import collections
 import enum
 import struct
 
+import attr
+
 
 class MessageId(enum.IntEnum):
 
@@ -99,3 +101,77 @@ class Version(collections.namedtuple('Version', ('major', 'minor', 'build', 'rev
 
     def serialize(self):
         return self._version_t.pack(*self)
+
+
+@attr.s
+class SerDesRegistry(object):
+
+    """Registry of message implementations which can serialize messages and deserialize packets."""
+
+    _implementation_types = attr.ib(default=attr.Factory(dict))
+    _version = attr.ib(default=Version(3))
+
+    def register_message(self, id_):
+        """Decorator to register the class which implements a given message."""
+
+        def register_message_impl(cls):
+            cls.message_id = id_
+            self._implementation_types[id_] = cls
+            return cls
+
+        return register_message_impl
+
+    @staticmethod
+    def serialize(message):
+        message_id = message.message_id
+        payload = message.serialize()
+        return uint16_t.pack(message_id) + uint16_t.pack(len(payload)) + payload
+
+    @staticmethod
+    def deserialize_header(data):
+        """Deserialize a packet into header and payload.
+
+        :type data: bytes"""
+        data = ParseBuffer(data)
+        message_id = MessageId(data.unpack(uint16_t))
+        length = data.unpack(uint16_t)
+        assert len(data) == length
+        return message_id, data
+
+    def deserialize_payload(self, message_id, payload_data, version=None, strict=False):
+        """Deserialize the payload of a packet.
+
+        :type message_id: MessageId
+        :type payload_data: ParseBuffer
+        :type version: Version
+        :param strict: Raise an exception if there is data left in the buffer after parsing.
+        :type strict: bool"""
+        if version is None:
+            version = self._version
+        message_type = self._implementation_types[message_id]
+        message = message_type.deserialize(payload_data, version)
+        if strict:
+            name = message_id.name
+            assert len(payload_data) == 0, \
+                "{} bytes remaining after parsing {} message".format(len(payload_data), name)
+        return message
+
+    def deserialize(self, data, version=None, strict=False):
+        """Deserialize a packet into the message it contains.
+
+        :type data: bytes
+        :type version: Version
+        :param strict: Raise an exception if there is data left in the buffer after parsing.
+        :type strict: bool"""
+        if version is None:
+            version = self._version
+        message_id, payload_data = self.deserialize_header(data)
+        return self.deserialize_payload(message_id, payload_data, version, strict)
+
+
+_registry = SerDesRegistry()
+register_message = _registry.register_message
+serialize = _registry.serialize
+deserialize_header = _registry.deserialize_header
+deserialize_payload = _registry.deserialize_payload
+deserialize = _registry.deserialize

@@ -8,7 +8,8 @@ except ImportError:
 
 import attr
 
-from .common import Version, double_t, float_t, int16_t, quaternion_t, uint16_t, uint32_t, uint64_t, vector3_t
+from .common import (MessageId, Version, double_t, float_t, int16_t, quaternion_t, register_message,
+                     uint16_t, uint32_t, uint64_t, vector3_t)
 
 
 @attr.s
@@ -191,6 +192,7 @@ class TimingInfo(object):
                    camera_data_received_timestamp, transmit_timestamp)
 
 
+@register_message(MessageId.FrameOfData)
 @attr.s
 class MocapFrameMessage(object):
 

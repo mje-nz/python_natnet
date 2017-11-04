@@ -2,9 +2,10 @@
 
 import attr
 
-from .common import Version
+from .common import MessageId, Version, register_message
 
 
+@register_message(MessageId.Connect)
 @attr.s
 class ConnectMessage(object):
 

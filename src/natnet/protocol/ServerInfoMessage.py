@@ -10,7 +10,7 @@ import socket
 
 import attr
 
-from .common import Version, bool_t, uint16_t, uint64_t
+from .common import MessageId, Version, bool_t, register_message, uint16_t, uint64_t
 
 
 @attr.s
@@ -34,6 +34,7 @@ class ConnectionInfo(object):
         return socket.inet_ntoa(self._multicast_address)
 
 
+@register_message(MessageId.ServerInfo)
 @attr.s
 class ServerInfoMessage(object):
 

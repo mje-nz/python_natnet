@@ -2,7 +2,8 @@
 
 import pytest
 
-from natnet.protocol import MocapFrameMessage, ParseBuffer, Version, deserialize  # noqa: F401
+from natnet.protocol import MocapFrameMessage, Version, deserialize  # noqa: F401
+from natnet.protocol.common import ParseBuffer
 from natnet.protocol.MocapFrameMessage import LabelledMarker, Markerset  # noqa: F401
 
 
