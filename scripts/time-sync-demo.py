@@ -23,8 +23,7 @@ def main():
             sent_timestamp_int = int(sent_timestamp*1e9)
             request = serialize(EchoRequestMessage(sent_timestamp_int))
             client._conn.send_packet(request)
-            response_packet, received_timestamp = client._conn.wait_for_packet_with_id(MessageId.EchoResponse)
-            response = deserialize(response_packet)
+            response, received_timestamp = client._conn.wait_for_message_with_id(MessageId.EchoResponse)
             assert response.request_timestamp == sent_timestamp_int
             rtt = received_timestamp - sent_timestamp
             server_received_request_timestamp = client._convert_server_timestamp(response.received_timestamp)

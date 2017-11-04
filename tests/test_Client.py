@@ -23,10 +23,12 @@ def test_client_calls_callback(test_packets):
     server_info = natnet.protocol.deserialize(test_packets[MessageId.ServerInfo])
     client = natnet.Client(conn, server_info)
 
-    # Set wait_for_packet to return a FrameOfData the first time, then raise SystemExit the second time
+    # Set wait_for_packet_raw to return a FrameOfData packet the first time, then raise SystemExit the second time
     frame_packet = test_packets[MessageId.FrameOfData]
     received_time = timeit.default_timer()
-    conn.wait_for_packet.side_effect = [(frame_packet, received_time), SystemExit]
+    conn.wait_for_packet_raw.side_effect = [(frame_packet, received_time), SystemExit]
+    # Re-attach wait_for_packet
+    conn.wait_for_packet = lambda *args: Connection.wait_for_packet(conn, *args)
 
     # Run the Client main loop with an inspectable callback
     callback = mock.Mock()
@@ -35,10 +37,11 @@ def test_client_calls_callback(test_packets):
 
     # Check call arguments
     callback.assert_called_once()
+    frame_message = natnet.protocol.deserialize(
+        frame_packet)  # type: natnet.protocol.MocapFrameMessage
     (rigid_bodies, labelled_markers, timing), _ = callback.call_args
-    frame = natnet.protocol.deserialize(frame_packet)  # type: natnet.protocol.MocapFrameMessage
-    assert rigid_bodies == frame.rigid_bodies
-    assert labelled_markers == frame.labelled_markers
+    assert rigid_bodies == frame_message.rigid_bodies
+    assert labelled_markers == frame_message.labelled_markers
     # SampleClient says 5.5ms
     assert timing.system_latency == pytest.approx(0.005495071)
     # Not sure if its worth testing the other members of timing

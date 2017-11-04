@@ -56,11 +56,12 @@ class Connection(object):
             self._data_socket.close()
             self._data_socket = None
 
-    def wait_for_packet(self, timeout=None):
-        """Return the next packet to arrive on either socket, or None if a timeout occurred.
+    def wait_for_packet_raw(self, timeout=None):
+        """Return the next packet to arrive on either socket as raw bytes, or None if a timeout occurred.
 
         :param timeout: Timeout in seconds
         :type timeout: float
+        :returns: bytes
         """
         sockets = [self._command_socket, self._data_socket]
         readable, _, exceptional = select.select(sockets, [], sockets, timeout)
@@ -78,17 +79,37 @@ class Connection(object):
 
         return data, received_time
 
-    def wait_for_packet_with_id(self, id_, timeout=None):
-        """Return the next packet with the given ID, discarding any others."""
-        # TODO: There's probably a better way of doing this, but it'll do until I implement the rest
+    def wait_for_packet(self, timeout=None):
+        """Return the next packet to arrive, deserializing the header but not the payload.
+
+        If `timeout` is given and no packet is received within that time, return (None, None, None).
+
+        :rtype: tuple[MessageId, bytes, float]
+        """
+        packet, received_time = self.wait_for_packet_raw(timeout)
+        message_id, payload = protocol.deserialize_header(packet) if packet is not None else (None, None)
+        return message_id, payload, received_time
+
+    def wait_for_message(self, timeout=None):
+        """Return the next message to arrive on either socket, or None if a timeout occurred."""
+        data, received_time = self.wait_for_packet_raw(timeout)
+        message = protocol.deserialize(data) if data is not None else None
+        return message, received_time
+
+    def wait_for_message_with_id(self, id_, timeout=None):
+        """Return the next message received of the given type, discarding any others."""
+        # TODO: There's probably a better way of doing this (that doesn't throw away other packets)
+        #       but it can wait until I see if that matters
         while True:
-            packet, received_time = self.wait_for_packet(timeout)
-            received_id, = protocol.common.uint16_t.unpack(packet[:2])
-            if received_id == id_:
-                return packet, received_time
+            message_id, payload, received_time = self.wait_for_packet(timeout)
+            if message_id == id_:
+                return protocol.deserialize_payload(message_id, payload), received_time
 
     def send_packet(self, packet):
         self._command_socket.sendto(packet, self._command_address)
+
+    def send_message(self, message):
+        self.send_packet(protocol.serialize(message))
 
 
 @attr.s
@@ -142,9 +163,8 @@ class Client(object):
         conn = Connection.open(server_ip)
 
         print('Getting server info')
-        conn.send_packet(protocol.serialize(protocol.ConnectMessage()))
-        server_info_packet, _ = conn.wait_for_packet_with_id(protocol.MessageId.ServerInfo)
-        server_info = protocol.deserialize(server_info_packet)  # type: protocol.ServerInfoMessage
+        conn.send_message(protocol.ConnectMessage())
+        server_info, received_time = conn.wait_for_message_with_id(protocol.MessageId.ServerInfo)
         print('Server application:', server_info.app_name)
         print('Server version:', server_info.app_version)
         assert server_info.connection_info.multicast
@@ -153,10 +173,8 @@ class Client(object):
 
         inst = cls(conn, server_info)
         print('Getting data descriptions')
-        conn.send_packet(protocol.serialize(protocol.RequestModelDefinitionsMessage()))
-        model_definitions_packet, _ = conn.wait_for_packet_with_id(
-            protocol.MessageId.ModelDef)
-        model_definitions_message = protocol.deserialize(model_definitions_packet)
+        conn.send_message(protocol.RequestModelDefinitionsMessage())
+        model_definitions_message, _ = conn.wait_for_message_with_id(protocol.MessageId.ModelDef)
         inst.handle_model_definitions(model_definitions_message)
 
         print('Ready')
@@ -190,14 +208,13 @@ class Client(object):
         """Receive messages and dispatch to handlers."""
         try:
             while True:
-                packet, received_time = self._conn.wait_for_packet(timeout)
-                if packet is None:
+                message_id, payload, received_time = self._conn.wait_for_packet(timeout)
+                if message_id is None:
                     print('Timed out waiting for packet')
                     continue
-                message_id, payload_data = protocol.deserialize_header(packet)
                 if message_id == protocol.MessageId.FrameOfData:
                     if self._callback:
-                        frame = protocol.deserialize_payload(message_id, payload_data)
+                        frame = protocol.deserialize_payload(message_id, payload)
                         rigid_bodies = frame.rigid_bodies
                         labelled_markers = frame.labelled_markers
                         timestamp_and_latency = TimestampAndLatency.calculate(
@@ -209,7 +226,7 @@ class Client(object):
                             self._conn.send_packet(protocol.serialize(
                                 protocol.RequestModelDefinitionsMessage()))
                 elif message_id == protocol.MessageId.ModelDef:
-                    model_definitions_message = protocol.deserialize_payload(message_id, payload_data)
+                    model_definitions_message = protocol.deserialize_payload(message_id, payload)
                     self.handle_model_definitions(model_definitions_message)
                 else:
                     print('Unhandled message type:', message_id.name)

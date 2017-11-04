@@ -19,13 +19,18 @@ class FakeConnection(object):
 
     _frame_packet = attr.ib()  # type: bytes
 
-    def wait_for_packet(self, timeout=None):
+    def wait_for_packet_raw(self, timeout=None):
         if timeout:
             time.sleep(timeout)
         return self._frame_packet, timeit.default_timer()
 
-    def wait_for_packet_with_id(self, id_):
-        return self.wait_for_packet()
+    def wait_for_message(self, timeout=None):
+        data, received_time = self.wait_for_packet_raw(timeout)
+        message = deserialize(data) if data is not None else None
+        return message, received_time
+
+    def wait_for_packet_with_id(self, id_, timeout=None):
+        return self.wait_for_message()
 
     def send_packet(self, packet):
         raise NotImplementedError()
