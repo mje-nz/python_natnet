@@ -80,7 +80,7 @@ class Connection(object):
         # TODO: There's probably a better way of doing this, but it'll do until I implement the rest
         while True:
             packet, received_time = self.wait_for_packet(timeout)
-            received_id, = protocol.uint16_t.unpack(packet[:2])
+            received_id, = protocol.common.uint16_t.unpack(packet[:2])
             if received_id == id_:
                 return packet, received_time
 
