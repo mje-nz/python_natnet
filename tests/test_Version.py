@@ -41,3 +41,13 @@ def test_deserialize():
 
 def test_serialize():
     assert Version(4, 3, 2, 1).serialize() == b'\x04\x03\x02\x01'
+
+
+def test_construct_and_compare_versions(benchmark):
+    """Benchmark constructing a Version and comparing it to a previously constructed Version."""
+    v = Version(3.0)
+
+    def work(version):
+        _ = version >= Version(2, 11)  # noqa: F841
+
+    benchmark.pedantic(work, args=(v,), iterations=100, rounds=100)

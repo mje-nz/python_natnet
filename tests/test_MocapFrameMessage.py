@@ -9,8 +9,8 @@ from natnet.protocol.MocapFrameMessage import LabelledMarker, Markerset  # noqa:
 
 def test_parse_mocapframe_packet_v3():
     """Test parsing a NatNet 3.0 packet containing a MocapFrame."""
-    data = open('tests/mocapframe_packet_v3.bin', 'rb').read()
-    frame = deserialize(data, Version(3), strict=True)  # type: MocapFrameMessage
+    packet = open('tests/mocapframe_packet_v3.bin', 'rb').read()
+    frame = deserialize(packet, Version(3), strict=True)  # type: MocapFrameMessage
 
     # These values are verified against SampleClient where easy
 
@@ -73,5 +73,11 @@ def test_parse_mocapframe_packet_v3():
 def test_serialize_and_deserialize_markerset():
     """Just need something that tests ParseBuffer.unpack_cstr without a size."""
     markerset = Markerset('test', [(1.0, 2.0, 3.0)])
-    data = ParseBuffer(markerset.serialize())
-    assert Markerset.deserialize(data, Version(3)) == markerset
+    packet = ParseBuffer(markerset.serialize())
+    assert Markerset.deserialize(packet, Version(3)) == markerset
+
+
+def test_deserialize_mocapframe(benchmark):
+    """Benchmark parsing a NatNet 3.0 packet containing a MocapFrame."""
+    packet = open('tests/mocapframe_packet_v3.bin', 'rb').read()
+    benchmark(deserialize, packet, Version(3))
