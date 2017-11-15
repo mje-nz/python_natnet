@@ -22,3 +22,6 @@ class EchoResponseMessage(object):
         request_timestamp = data.unpack(uint64_t)
         received_timestamp = data.unpack(uint64_t)
         return cls(request_timestamp, received_timestamp)
+
+    def serialize(self, version=None):
+        return uint64_t.pack(self.request_timestamp) + uint64_t.pack(self.received_timestamp)

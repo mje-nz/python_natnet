@@ -113,6 +113,106 @@ class Connection(object):
 
 
 @attr.s
+class ClockSynchronizer(object):
+
+    """Synchronize clocks with a NatNet server using Cristian's algorithm."""
+
+    _server_info = attr.ib()
+    _last_server_time = attr.ib(None)
+    _last_synced_at = attr.ib(None)
+    _min_rtt = attr.ib(1e-3)
+    _echo_count = attr.ib(0)
+    _last_sent_time = attr.ib(None)
+
+    def initial_sync(self, conn):
+        """Use a series of echoes to measure minimum round trip time.
+
+        :type conn: Connection
+        """
+        while self._echo_count < 100:
+            self.send_echo_request(conn)
+            response, received_time = conn.wait_for_message_with_id(protocol.MessageId.EchoResponse,
+                                                                    timeout=0.1)
+            if response is None:
+                print('Timeout out while waiting for echo response {}'.format(self._echo_count + 1))
+            self.handle_echo_response(response, received_time)
+
+    def server_ticks_to_seconds(self, server_ticks):
+        return float(server_ticks)/self._server_info.high_resolution_clock_frequency
+
+    def server_to_local_time(self, server_ticks):
+        """Convert a NatNet HPC timestamp to local time (according to timeit.default_timer)."""
+        server_time = self.server_ticks_to_seconds(server_ticks)
+        server_time_since_last_sync = server_time - self._last_server_time
+        local_time = self._last_synced_at + server_time_since_last_sync*(1 + 0.02e-3)
+        return local_time
+
+    def local_to_server_time(self, local_time):
+        local_time_since_last_sync = local_time - self._last_synced_at
+        server_time = self._last_server_time + local_time_since_last_sync*(1 - 0.02e-3)
+        return server_time
+
+    def server_time_now(self):
+        """Get the current time on the server's HPC."""
+        return self.local_to_server_time(timeit.default_timer())
+
+    def send_echo_request(self, conn):
+        self._last_sent_time = timeit.default_timer()
+        sent_timestamp_int = int(self._last_sent_time*1e9)
+        conn.send_message(protocol.EchoRequestMessage(sent_timestamp_int))
+
+    def handle_echo_response(self, response, received_time):
+        assert response.request_timestamp == int(self._last_sent_time*1e9)
+        rtt = received_time - self._last_sent_time
+        server_reception_time = self.server_ticks_to_seconds(response.received_timestamp)
+        if self._last_server_time is None:
+            # First echo, initialize
+            self._last_server_time = server_reception_time + rtt/2
+            self._last_synced_at = received_time
+            print('First echo: RTT {:.2f}ms, server time {:.1f}'.format(1000*rtt, self._last_server_time))
+        else:
+            # The true server time falls within server_reception_time +- (rtt - true_min_rtt)/2.
+            # We'd generally like to be within 0.1ms of the actual time, which would require the RTT
+            # to be less than 0.1ms over the minimum RTT.  However, I've measured clock skew of
+            # 0.03ms/s before, so if we start with a perfect estimate and don't sync for 5 seconds we
+            # could already be out by 0.1ms.  Therefore our threshold should start at 0.05ms and
+            # increase over time such that it's always a bit less than our potential accumulated
+            # drift.
+            # TODO: Kalman filter
+            dt = received_time - self._last_synced_at
+            accumulated_drift = dt*0.05e-3  # Assume skew is severe and we have a bad estimate of it
+            rtt_threshold = self._min_rtt + max(0.05e-3, max(0.1e-3, accumulated_drift))
+            if rtt < rtt_threshold:
+                old_server_time_when_received = self.local_to_server_time(received_time)
+                self._last_server_time = server_reception_time + rtt/2
+                self._last_synced_at = received_time
+                correction = self._last_server_time - old_server_time_when_received
+                drift = correction/dt
+                print(
+                    'Echo {: 5d}: RTT {:.2f}ms (min {:.2f}ms), server time {:.1f}s, dt {: .3f}s, '
+                    'correction {: .3f}ms, drift {: .3f}ms/s'
+                    .format(self._echo_count, 1000*rtt, 1000*self._min_rtt, self._last_server_time,
+                            dt, 1000*correction, 1000*drift))
+
+        if rtt < self._min_rtt:
+            self._min_rtt = rtt
+        self._echo_count += 1
+
+    def update(self, conn):
+        now = timeit.default_timer()
+        time_since_last_echo = now - self._last_sent_time
+        time_since_last_sync = now - self._last_synced_at
+
+        minimum_time_between_echo_requests = 0.5
+        if time_since_last_sync > 5:
+            minimum_time_between_echo_requests = 0.1
+        if time_since_last_sync > 10:
+            minimum_time_between_echo_requests = 0.01
+        if time_since_last_echo > minimum_time_between_echo_requests:
+            self.send_echo_request(conn)
+
+
+@attr.s
 class TimestampAndLatency(object):
 
     # Camera mid-exposure timestamp (from local clock, *not* server clock)
@@ -128,18 +228,17 @@ class TimestampAndLatency(object):
     processing_latency = attr.ib()  # type: float
 
     @classmethod
-    def calculate(cls, received_timestamp, timing_info, server_info):
+    def calculate(cls, received_timestamp, timing_info, clock):
         """Calculate latencies and local timestamp.
 
         :type received_timestamp: float
         :type timing_info: TimingInfo
-        :type server_info: protocol.ServerInfoMessage"""
+        :type clock: ClockSynchronizer"""
 
+        timestamp = clock.server_to_local_time(timing_info.camera_mid_exposure_timestamp)
         system_latency_ticks = timing_info.transmit_timestamp - timing_info.camera_mid_exposure_timestamp
-        system_latency = float(system_latency_ticks)/server_info.high_resolution_clock_frequency
-        transit_latency = 0.7e-3  # Just hard-code this for now
-        # For now, just work backwards from the received timestamp
-        timestamp = received_timestamp - system_latency - transit_latency
+        system_latency = clock.server_ticks_to_seconds(system_latency_ticks)
+        transit_latency = received_timestamp - clock.server_to_local_time(timing_info.transmit_timestamp)
         processing_latency = timeit.default_timer() - received_timestamp
         return cls(timestamp, system_latency, transit_latency, processing_latency)
 
@@ -153,7 +252,7 @@ class TimestampAndLatency(object):
 class Client(object):
 
     _conn = attr.ib()  # type: Connection
-    _server_info = attr.ib()  # type: protocol.ServerInfoMessage
+    _clock_synchronizer = attr.ib()  # type: ClockSynchronizer
     rigid_body_names = attr.ib(attr.Factory(dict))  # type: dict[int, str]
     _callback = attr.ib(None)
 
@@ -171,7 +270,11 @@ class Client(object):
         conn.bind_data_socket(server_info.connection_info.multicast_address,
                               server_info.connection_info.data_port)
 
-        inst = cls(conn, server_info)
+        print('Synchronizing clocks')
+        clock_synchronizer = ClockSynchronizer(server_info)
+        clock_synchronizer.initial_sync(conn)
+        inst = cls(conn, clock_synchronizer)
+
         print('Getting data descriptions')
         conn.send_message(protocol.RequestModelDefinitionsMessage())
         model_definitions_message, _ = conn.wait_for_message_with_id(protocol.MessageId.ModelDef)
@@ -186,8 +289,33 @@ class Client(object):
         :type callback: (list[RigidBody], list[LabelledMarker], TimingAndLatency) -> None"""
         self._callback = callback
 
-    def _convert_server_timestamp(self, timestamp_ticks):
-        return float(timestamp_ticks)/self._server_info.high_resolution_clock_frequency
+    def run_once(self, timeout=None):
+        message_id, payload, received_time = self._conn.wait_for_packet(timeout)
+        if message_id is None:
+            print('Timed out waiting for packet')
+            return
+        if message_id == protocol.MessageId.FrameOfData:
+            if self._callback:
+                frame = protocol.deserialize_payload(message_id, payload)
+                rigid_bodies = frame.rigid_bodies
+                labelled_markers = frame.labelled_markers
+                timestamp_and_latency = TimestampAndLatency.calculate(
+                    received_time, frame.timing_info, self._clock_synchronizer)
+                self._callback(rigid_bodies, labelled_markers, timestamp_and_latency)
+
+                if frame.tracked_models_changed:
+                    print('Tracked models have changed, requesting new model definitions')
+                    self._conn.send_packet(protocol.serialize(
+                        protocol.RequestModelDefinitionsMessage()))
+        elif message_id == protocol.MessageId.ModelDef:
+            model_definitions_message = protocol.deserialize_payload(message_id, payload)
+            self.handle_model_definitions(model_definitions_message)
+        elif message_id == protocol.MessageId.EchoResponse:
+            echo_response_message = protocol.deserialize_payload(message_id, payload)
+            self._clock_synchronizer.handle_echo_response(echo_response_message, received_time)
+        else:
+            print('Unhandled message type:', message_id.name)
+        self._clock_synchronizer.update(self._conn)
 
     def handle_model_definitions(self, model_definitions_message):
         """Update local list of rigid body id:name mappings.
@@ -208,27 +336,6 @@ class Client(object):
         """Receive messages and dispatch to handlers."""
         try:
             while True:
-                message_id, payload, received_time = self._conn.wait_for_packet(timeout)
-                if message_id is None:
-                    print('Timed out waiting for packet')
-                    continue
-                if message_id == protocol.MessageId.FrameOfData:
-                    if self._callback:
-                        frame = protocol.deserialize_payload(message_id, payload)
-                        rigid_bodies = frame.rigid_bodies
-                        labelled_markers = frame.labelled_markers
-                        timestamp_and_latency = TimestampAndLatency.calculate(
-                            received_time, frame.timing_info, self._server_info)
-                        self._callback(rigid_bodies, labelled_markers, timestamp_and_latency)
-
-                        if frame.tracked_models_changed:
-                            print('Tracked models have changed, requesting new model definitions')
-                            self._conn.send_packet(protocol.serialize(
-                                protocol.RequestModelDefinitionsMessage()))
-                elif message_id == protocol.MessageId.ModelDef:
-                    model_definitions_message = protocol.deserialize_payload(message_id, payload)
-                    self.handle_model_definitions(model_definitions_message)
-                else:
-                    print('Unhandled message type:', message_id.name)
+                self.run_once(timeout)
         except (KeyboardInterrupt, SystemExit):
             print('Exiting')

@@ -11,7 +11,7 @@ def test_parse_echorequest_packet_v3():
     assert echo_request.timestamp == 278554190
 
 
-def test_serialize_connect_message():
+def test_serialize_echorequest_message():
     """Test serializing an EchoRequest message."""
     expected = open('tests/echorequest_packet_v3.bin', 'rb').read()
     actual = serialize(EchoRequestMessage(278554190))
