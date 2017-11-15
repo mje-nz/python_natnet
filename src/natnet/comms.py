@@ -1,5 +1,7 @@
 # coding: utf-8
 
+from __future__ import print_function
+
 import select
 import socket
 import struct
@@ -9,6 +11,7 @@ import attr
 
 from . import protocol
 from .protocol.MocapFrameMessage import LabelledMarker, RigidBody, TimingInfo  # noqa: F401
+from .protocol.ModelDefinitionsMessage import RigidBodyDescription
 
 
 @attr.s
@@ -130,23 +133,34 @@ class Client(object):
 
     _conn = attr.ib()  # type: Connection
     _server_info = attr.ib()  # type: protocol.ServerInfoMessage
+    rigid_body_names = attr.ib(attr.Factory(dict))  # type: dict[int, str]
     _callback = attr.ib(None)
 
     @classmethod
     def connect(cls, server_ip):
         print('Connecting to', server_ip)
         conn = Connection.open(server_ip)
+
         print('Getting server info')
         conn.send_packet(protocol.serialize(protocol.ConnectMessage()))
-        server_info_packet, received_time = conn.wait_for_packet_with_id(protocol.MessageId.ServerInfo)
+        server_info_packet, _ = conn.wait_for_packet_with_id(protocol.MessageId.ServerInfo)
         server_info = protocol.deserialize(server_info_packet)  # type: protocol.ServerInfoMessage
         print('Server application:', server_info.app_name)
         print('Server version:', server_info.app_version)
         assert server_info.connection_info.multicast
         conn.bind_data_socket(server_info.connection_info.multicast_address,
                               server_info.connection_info.data_port)
+
+        inst = cls(conn, server_info)
+        print('Getting data descriptions')
+        conn.send_packet(protocol.serialize(protocol.RequestModelDefinitionsMessage()))
+        model_definitions_packet, _ = conn.wait_for_packet_with_id(
+            protocol.MessageId.ModelDef)
+        model_definitions_message = protocol.deserialize(model_definitions_packet)
+        inst.handle_model_definitions(model_definitions_message)
+
         print('Ready')
-        return cls(conn, server_info)
+        return inst
 
     def set_callback(self, callback):
         """Set the frame callback.
@@ -156,6 +170,21 @@ class Client(object):
 
     def _convert_server_timestamp(self, timestamp_ticks):
         return float(timestamp_ticks)/self._server_info.high_resolution_clock_frequency
+
+    def handle_model_definitions(self, model_definitions_message):
+        """Update local list of rigid body id:name mappings.
+
+        :type model_definitions_message: protocol.ModelDefinitionsMessage
+        """
+        models = model_definitions_message.models
+        rigid_body_descriptions = [m for m in models if type(m) is RigidBodyDescription]
+        self.rigid_body_names = {m.id_: m.name for m in rigid_body_descriptions}
+        print('Rigid body names:', self.rigid_body_names)
+        if len(rigid_body_descriptions) > len(self.rigid_body_names):
+            names = [m.name for m in rigid_body_descriptions]
+            missing_bodies = [n for n in names if n not in self.rigid_body_names.values()]
+            print('Warning: duplicate streaming IDs detected (ignoring {})'
+                  .format(', '.join(repr(m) for m in missing_bodies)))
 
     def spin(self, timeout=None):
         """Receive messages and dispatch to handlers."""
@@ -174,6 +203,14 @@ class Client(object):
                         timestamp_and_latency = TimestampAndLatency.calculate(
                             received_time, frame.timing_info, self._server_info)
                         self._callback(rigid_bodies, labelled_markers, timestamp_and_latency)
+
+                        if frame.tracked_models_changed:
+                            print('Tracked models have changed, requesting new model definitions')
+                            self._conn.send_packet(protocol.serialize(
+                                protocol.RequestModelDefinitionsMessage()))
+                elif message_id == protocol.MessageId.ModelDef:
+                    model_definitions_message = protocol.deserialize_payload(message_id, payload_data)
+                    self.handle_model_definitions(model_definitions_message)
                 else:
                     print('Unhandled message type:', message_id.name)
         except (KeyboardInterrupt, SystemExit):
