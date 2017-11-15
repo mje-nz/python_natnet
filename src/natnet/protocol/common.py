@@ -32,6 +32,7 @@ class MessageId(enum.IntEnum):
 # Field types
 bool_t = struct.Struct('?')
 int16_t = struct.Struct('<h')
+int32_t = struct.Struct('<i')
 uint16_t = struct.Struct('<H')
 uint32_t = struct.Struct('<I')
 uint64_t = struct.Struct('<Q')
@@ -135,7 +136,8 @@ class SerDesRegistry(object):
         data = ParseBuffer(data)
         message_id = MessageId(data.unpack(uint16_t))
         length = data.unpack(uint16_t)
-        assert len(data) == length
+        assert len(data) == length, 'Header says payload has length {}, but actual length is {}'\
+            .format(len(data), length)
         return message_id, data
 
     def deserialize_payload(self, message_id, payload_data, version=None, strict=False):
