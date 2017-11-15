@@ -4,9 +4,13 @@ for profiling.  In IPython, use this command to profile packet deserialisation:
     %run -p scripts/natnet-client-demo.py fake 0 True
 """
 
+import argparse
+import time
+
 import attr
 
 import natnet
+
 
 @attr.s
 class ClientApp(object):
@@ -14,6 +18,8 @@ class ClientApp(object):
     _client = attr.ib()
     _timeout = attr.ib()
     _quiet = attr.ib()
+
+    _last_printed = attr.ib(0)
 
     @classmethod
     def connect(cls, server_name, timeout, quiet):
@@ -57,17 +63,21 @@ class ClientApp(object):
         ))
 
     def callback_quiet(self, *args):
-        print('.')
+        if time.time() - self._last_printed > 1:
+            print('.')
+            self._last_printed = time.time()
 
 
-def main(server_name, timeout=0.1, quiet=False):
-    timeout = float(timeout)
-    if timeout == 0:
-        timeout = None
-    app = ClientApp.connect(server_name, timeout, bool(quiet))
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--server', default='192.168.0.106')
+    parser.add_argument('--timeout', type=float)
+    parser.add_argument('--quiet', action='store_true')
+    args = parser.parse_args()
+
+    app = ClientApp.connect(args.server, args.timeout, args.quiet)
     app.run()
 
 
 if __name__ == '__main__':
-    import sys
-    main(*sys.argv[1:])
+    main()
