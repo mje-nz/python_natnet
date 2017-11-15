@@ -123,6 +123,7 @@ class ClockSynchronizer(object):
     _min_rtt = attr.ib(1e-3)
     _echo_count = attr.ib(0)
     _last_sent_time = attr.ib(None)
+    _skew = attr.ib(0)
 
     def initial_sync(self, conn):
         """Use a series of echoes to measure minimum round trip time.
@@ -144,12 +145,12 @@ class ClockSynchronizer(object):
         """Convert a NatNet HPC timestamp to local time (according to timeit.default_timer)."""
         server_time = self.server_ticks_to_seconds(server_ticks)
         server_time_since_last_sync = server_time - self._last_server_time
-        local_time = self._last_synced_at + server_time_since_last_sync*(1 + 0.02e-3)
+        local_time = self._last_synced_at + server_time_since_last_sync*(1 + self._skew)
         return local_time
 
     def local_to_server_time(self, local_time):
         local_time_since_last_sync = local_time - self._last_synced_at
-        server_time = self._last_server_time + local_time_since_last_sync*(1 - 0.02e-3)
+        server_time = self._last_server_time + local_time_since_last_sync*(1 + self._skew)
         return server_time
 
     def server_time_now(self):
@@ -188,11 +189,19 @@ class ClockSynchronizer(object):
                 self._last_synced_at = received_time
                 correction = self._last_server_time - old_server_time_when_received
                 drift = correction/dt
+                # This only works over a reasonably long time period
+                if dt > 1:
+                    if self._skew == 0:
+                        # Initialize
+                        self._skew = -drift
+                    else:
+                        # Slowly converge on the true skew
+                        self._skew += drift/2
                 print(
                     'Echo {: 5d}: RTT {:.2f}ms (min {:.2f}ms), server time {:.1f}s, dt {: .3f}s, '
-                    'correction {: .3f}ms, drift {: .3f}ms/s'
+                    'correction {: .3f}ms, drift {:7.3f}ms/s, new skew: {: .3f}ms/s'
                     .format(self._echo_count, 1000*rtt, 1000*self._min_rtt, self._last_server_time,
-                            dt, 1000*correction, 1000*drift))
+                            dt, 1000*correction, 1000*drift, 1000*self._skew))
 
         if rtt < self._min_rtt:
             self._min_rtt = rtt
