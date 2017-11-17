@@ -12,8 +12,8 @@ Overview
     * - tests
       - | |travis| |appveyor| |codecov|
 
-.. |docs| image:: https://readthedocs.org/projects/python_natnet/badge/?style=flat
-    :target: https://readthedocs.org/projects/python_natnet
+.. |docs| image:: https://readthedocs.org/projects/python-natnet/badge/?style=flat
+    :target: https://readthedocs.org/projects/python-natnet
     :alt: Documentation Status
 
 .. |travis| image:: https://travis-ci.org/mje-nz/python_natnet.svg?branch=master
@@ -30,9 +30,21 @@ Overview
 
 .. end-badges
 
-NatNet 3 client
+This is a NatNet client library written in Python, supporting protocol version 3 (Motive version 2.0).
 
+Features:
+
+* Supports rigid bodies and markers
+* Synchronizes clocks with the server to calculate correct frame timestamps
 * Free software: BSD 3-Clause License
+
+See also: `mje-nz/natnet_ros <https://github.com/mje-nz/natnet_ros>`_, a ROS driver based on this library.
+
+
+Documentation
+=============
+
+https://python-natnet.readthedocs.io/
 
 
 Installation

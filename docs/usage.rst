@@ -10,4 +10,6 @@ To use natnet in a project::
 	    lambda rigid_bodies, markers, timing: print(rigid_bodies))
 	client.spin()
 
-see ``scripts\natnet-client-demo.py`` for a full example.
+For a full example, see ``scripts\natnet-client-demo.py``.
+Another example is `mje-nz/natnet_ros <https://github.com/mje-nz/natnet_ros>`_, a ROS driver based on this library.
+
