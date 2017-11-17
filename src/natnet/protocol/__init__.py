@@ -1,10 +1,22 @@
 # coding: utf-8
-"""NatNet protocol parsing."""
+"""NatNet protocol parsing.
 
-__all__ = ['ConnectMessage', 'EchoRequestMessage', 'EchoResponseMessage', 'MessageId',
-           'MocapFrameMessage', 'ModelDefinitionsMessage', 'RequestModelDefinitionsMessage',
-           'ServerInfoMessage', 'Version', 'serialize', 'deserialize', 'deserialize_header',
-           'deserialize_payload']
+Each message is implemented as a class with a serialize method and/or deserialize classmethod
+(messages are not required to implement both).
+
+To deserialize a packet, use :func:`~natnet.protocol.deserialize` and check the type of the return
+value (against the message types you're interested in).  Alternatively, use
+:func:`~natnet.protocol.deserialize_header` and check the message ID (against the message IDs you're
+interested in), then use :func:`~natnet.protocol.deserialize_payload` to get a message instance."""
+
+__all__ = [
+    # Functions
+    'serialize', 'deserialize', 'deserialize_header', 'deserialize_payload',
+    # Misc
+    'MessageId', 'Version',
+    # Messages
+    'ConnectMessage', 'EchoRequestMessage', 'EchoResponseMessage', 'MocapFrameMessage',
+    'ModelDefinitionsMessage', 'RequestModelDefinitionsMessage', 'ServerInfoMessage']
 
 from .common import (MessageId, Version, deserialize, deserialize_header, deserialize_payload,
                      serialize)

@@ -1,5 +1,18 @@
 # coding: utf-8
 
+"""This is the most complicated message.
+
+All positions are given as (x, y, z) tuples of floats, in meters, in whatever co-ordinate frame
+Motive is using (Y-up or Z-up depending on the streaming settings).  All orientations are given in
+quaternion form as (x, y, z, w) tuples of floats.
+
+Note that I have only tested rigid bodies -- skeletons, force plates and peripheral devices may or
+may not work.
+"""
+
+__all__ = ['Markerset', 'RigidBody', 'Skeleton', 'LabelledMarker', 'AnalogChannelData', 'Device',
+           'TimingInfo', 'MocapFrameMessage']
+
 try:
     # Only need this for type annotations
     from typing import Optional  # noqa: F401
@@ -15,11 +28,19 @@ from .common import (MessageId, Version, double_t, float_t, int16_t, quaternion_
 @attr.s
 class Markerset(object):
 
-    name = attr.ib()  # type: str
+    """Vaguely-defined grouping of markers which doesn't seem to serve any useful purpose.
+
+    Attributes:
+        name (str): Markerset name
+        markers (list[tuple[float, float, float]]): Position for each marker
+    """
+
+    name = attr.ib()
     markers = attr.ib()
 
     @classmethod
-    def deserialize(cls, data, version):
+    def deserialize(cls, data, version=None):
+        """Deserialize a Markerset from a ParseBuffer."""
         name = data.unpack_cstr()
         marker_count = data.unpack(uint32_t)
         markers = [data.unpack(vector3_t) for i in range(marker_count)]
@@ -33,6 +54,19 @@ class Markerset(object):
 @attr.s
 class RigidBody(object):
 
+    """Rigid body data.
+
+    Note that as of NatNet 3, the individual marker positions, IDs and sizes are not included here
+    (and if you don't need them you can prevent Motive from streaming them at all).  If you need
+    them, search the list of LabelledMarkers for markers with the right model ID.
+
+    Attributes:
+        id (int): Streaming ID
+        position (tuple[float, float, float]):
+        orientation (tuple([float, float, float, float]):
+        mean_error (float or None): Mean error per marker, if available
+    """
+
     id_ = attr.ib()  # type: int
     position = attr.ib()
     orientation = attr.ib()
@@ -41,6 +75,7 @@ class RigidBody(object):
 
     @classmethod
     def deserialize(cls, data, version):
+        """Deserialize a RigidBody from a ParseBuffer."""
         id_ = data.unpack(uint32_t)
         position = data.unpack(vector3_t)
         orientation = data.unpack(quaternion_t)
@@ -69,6 +104,7 @@ class RigidBody(object):
 
     @property
     def tracking_valid(self):
+        """True if rigid body is being tracked successfully."""
         assert self._params is not None
         return (self._params & 0x01) != 0
 
@@ -76,11 +112,21 @@ class RigidBody(object):
 @attr.s
 class Skeleton(object):
 
+    """Skeleton data, which consists of a set of rigid bodies.
+
+    Apparently the rigid bodies will have their ID equal to skeleton_id << 16 + bone_id.
+
+    Attributes:
+        id_ (int): Skeleton ID (I'm not sure where this is set)
+        rigid_bodies (list[:class:`RigidBody`]):
+    """
+
     id_ = attr.ib()  # type: int
     rigid_bodies = attr.ib()  # type: list[RigidBody]
 
     @classmethod
-    def deserialize(cls, data, version):
+    def deserialize(cls, data, version=None):
+        """Deserialize a Skeleton from a ParseBuffer."""
         id_ = data.unpack(uint32_t)
         rigid_body_count = data.unpack(uint32_t)
         rigid_bodies = [RigidBody.deserialize(data, version) for i in range(rigid_body_count)]
@@ -90,15 +136,29 @@ class Skeleton(object):
 @attr.s
 class LabelledMarker(object):
 
-    model_id = attr.ib()  # type: int
-    marker_id = attr.ib()  # type: int
+    """A single marker and associated information.
+
+    Note that this is **not** only markers that are part of rigid bodies.
+
+    Attributes:
+        model_id (int): ID of containing rigid body, or 0 if the marker is not part of a rigid body
+        marker_id (int): Marker ID (starting at 0 for rigid body markers, or a large number
+            otherwise)
+        position (tuple[float, float, float]):
+        size (float): Estimated marker size in meters
+        residual (float or None): Marker error in mm/ray, if available
+    """
+
+    model_id = attr.ib()
+    marker_id = attr.ib()
     position = attr.ib()
-    size = attr.ib()  # type: float
+    size = attr.ib()
     _params = attr.ib()  # type: Optional[int]
-    residual = attr.ib()  # type: Optional[float]
+    residual = attr.ib()
 
     @classmethod
     def deserialize(cls, data, version):
+        """Deserialize a LabelledMarker from a ParseBuffer."""
         # In the SDK direct depacketization samples these are lumped together as one int32_t, but
         # this is what it decodes to.
         marker_id = data.unpack(uint16_t)
@@ -120,16 +180,19 @@ class LabelledMarker(object):
 
     @property
     def occluded(self):
+        """True if the marker is occluded."""
         assert self._params is not None
         return (self._params & 0x01) != 0
 
     @property
     def point_cloud_solved(self):
+        """True if the marker is "point cloud solved" i.e. its position was calculated directly."""
         assert self._params is not None
         return (self._params & 0x02) != 0
 
     @property
     def model_solved(self):
+        """True if the marker is "model solved" i.e. its position was calculated from a rigid body."""
         assert self._params is not None
         return (self._params & 0x04) != 0
 
@@ -140,7 +203,7 @@ class AnalogChannelData(object):
     values = attr.ib()  # type: list[int]
 
     @classmethod
-    def deserialize(cls, data, version):
+    def deserialize(cls, data, version=None):
         frame_count = data.unpack(uint32_t)
         values = [data.unpack(uint32_t) for i in range(frame_count)]
         return cls(values)
@@ -153,7 +216,7 @@ class Device(object):
     channels = attr.ib()  # type: list[AnalogChannelData]
 
     @classmethod
-    def deserialize(cls, data, version):
+    def deserialize(cls, data, version=None):
         id_ = data.unpack(uint32_t)
         channel_count = data.unpack(uint32_t)
         channels = [AnalogChannelData.deserialize(data, version) for i in range(channel_count)]
@@ -163,15 +226,30 @@ class Device(object):
 @attr.s
 class TimingInfo(object):
 
-    timecode = attr.ib()  # type: int
-    timecode_subframe = attr.ib()  # type: int
-    timestamp = attr.ib()  # type: float
-    camera_mid_exposure_timestamp = attr.ib()  # type: Optional[int]
-    camera_data_received_timestamp = attr.ib()  # type: Optional[int]
-    transmit_timestamp = attr.ib()  # type: Optional[int]
+    """Timing information.
+
+    Attributes:
+        timecode (int): SMPTE timecode, if available
+        timecode_subframe (int): SMPTE timecode subframe, if available
+        timestamp (float): Software timestamp (in seconds since software startup)
+        camera_mid_exposure_timestamp (int or None): Camera mid exposure time (in performance
+            counter ticks), if available
+        camera_data_received_timestamp (int or None): Time camera data was received (in performance
+            counter ticks), if available
+        transmit_timestamp (int or None): Time frame was transmitted (in performance counter ticks),
+            if available
+    """
+
+    timecode = attr.ib()
+    timecode_subframe = attr.ib()
+    timestamp = attr.ib()
+    camera_mid_exposure_timestamp = attr.ib()
+    camera_data_received_timestamp = attr.ib()
+    transmit_timestamp = attr.ib()
 
     @classmethod
     def deserialize(cls, data, version):
+        """Deserialize timing information from a ParseBuffer."""
         timecode = data.unpack(uint32_t)
         timecode_subframe = data.unpack(uint32_t)
 
@@ -196,7 +274,23 @@ class TimingInfo(object):
 @attr.s
 class MocapFrameMessage(object):
 
-    frame_number = attr.ib()  # type: int
+    """Frame of mocap data.
+
+    Attributes:
+        frame_number (int):
+        markersets (list of :class:`Markerset`):
+        unlabelled_markers (list[tuple[float, float, float]]): Position of each tracked marker,
+            whether part of a rigid body or not (deprecated)
+        rigid_bodies (list of :class:`RigidBody`):
+        skeletons (list of :class:`Skeleton`):
+        labelled_markers (list of :class:`LabelledMarker`): A LabelledMarker instance for each
+            tracked marker, whether part of a rigid body or not
+        force_plates (list of :class:`Device`):
+        devices (list of :class:`Device`):
+        timing_info (:class:`TimingInfo`): Timestamps (in server time)
+    """
+
+    frame_number = attr.ib()
     markersets = attr.ib()  # type: list[Markerset]
     unlabelled_markers = attr.ib()
     rigid_bodies = attr.ib()  # type: list[RigidBody]
@@ -209,10 +303,15 @@ class MocapFrameMessage(object):
 
     @classmethod
     def deserialize(cls, data, version):
-        """Deserialize a ServerInfo message.
+        """Deserialize a FrameOfData message.
 
-        :type data: ParseBuffer
-        :type version: Version"""
+        Args:
+            data (:class:`~common.ParseBuffer`):
+            version (:class:`~common.Version`):
+
+        Returns:
+            MocapFrameMessage: Deserialized message
+        """
 
         frame_number = data.unpack(uint32_t)
 
@@ -261,10 +360,12 @@ class MocapFrameMessage(object):
 
     @property
     def is_recording(self):
+        """True if Motive is recording."""
         assert self._params is not None
         return (self._params & 0x01) != 0
 
     @property
     def tracked_models_changed(self):
+        """True if the tracked models have changed since the last frame."""
         assert self._params is not None
         return (self._params & 0x02) != 0

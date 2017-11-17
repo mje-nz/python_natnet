@@ -2,6 +2,7 @@
 
 import collections
 import enum
+import functools
 import struct
 
 import attr
@@ -9,7 +10,19 @@ import attr
 
 class MessageId(enum.IntEnum):
 
-    """Message IDs as in NatNetTypes.h."""
+    """Message IDs for each NatNet message (as in NatNetTypes.h).
+
+    Attributes:
+        Connect: Request for server info
+        ServerInfo: Motive version, NatNet version, clock frequency, data port, and multicast
+            address
+        RequestModelDef: Request for model definitions
+        ModelDef: List of definitions of rigid bodies, markersets, skeletons etc
+        FrameOfData: Frame of motion capture data
+        EchoRequest: Request server to immediately respond with its current time (used for clock
+            sync)
+        EchoResponse: Current server time (and time contained in EchoRequest message)
+    """
 
     Connect = 0
     ServerInfo = 1
@@ -26,7 +39,7 @@ class MessageId(enum.IntEnum):
     EchoRequest = 12
     EchoResponse = 13
     Discovery = 14
-    UnrecognizedRequest = 0x100  # NatNetTypes gives this as decimal 100, but that's incorrect
+    UnrecognizedRequest = 0x100  # NatNetTypes.h gives this as decimal 100, but that's incorrect
 
 
 # Field types
@@ -44,6 +57,11 @@ quaternion_t = struct.Struct('<ffff')
 
 class ParseBuffer(object):
 
+    """Buffer handling logic.
+
+    Contains a buffer and an offset, and provides methods for unpacking data types (as struct.Struct
+    instances) from the buffer."""
+
     def __init__(self, data):
         self.data = memoryview(data)
         self.offset = 0
@@ -53,6 +71,11 @@ class ParseBuffer(object):
         return len(self.data) - self.offset
 
     def unpack(self, struct_type):
+        """Unpack a field.
+
+        Args:
+            struct_type (struct.Struct): Type of field to unpack
+        """
         value = struct_type.unpack(self.data[self.offset:self.offset + struct_type.size])
         if len(value) == 1:
             value = value[0]
@@ -89,7 +112,13 @@ class Version(collections.namedtuple('Version', ('major', 'minor', 'build', 'rev
 
     """NatNet version, with correct comparison operator.
 
-    Believe it or not, this is performance-critical."""
+    Believe it or not, this is performance-critical.
+
+    Attributes:
+        major (int):
+        minor (int):
+        build (int):
+        revision (int):"""
 
     _version_t = struct.Struct('BBBB')
 
@@ -98,22 +127,30 @@ class Version(collections.namedtuple('Version', ('major', 'minor', 'build', 'rev
 
     @classmethod
     def deserialize(cls, data, version=None):
+        """Deserialize a Version from a ParseBuffer."""
         return cls(*data.unpack(cls._version_t))
 
     def serialize(self):
+        """Serialize a Version to bytes."""
         return self._version_t.pack(*self)
 
 
 @attr.s
 class SerDesRegistry(object):
 
-    """Registry of message implementations which can serialize messages and deserialize packets."""
+    """Registry of message implementations, which can serialize messages and deserialize packets.
+
+    An instance of this is used to provide the module-level function."""
 
     _implementation_types = attr.ib(default=attr.Factory(dict))
     _version = attr.ib(default=Version(3))
 
     def register_message(self, id_):
-        """Decorator to register the class which implements a given message."""
+        """Decorator to register the class which implements a given message.
+
+        Args:
+            id_ (:class:`MessageId`):
+        """
 
         def register_message_impl(cls):
             cls.message_id = id_
@@ -124,15 +161,28 @@ class SerDesRegistry(object):
 
     @staticmethod
     def serialize(message):
+        """Serialize a message instance into a binary packet.
+
+        Args:
+            message: A message instance
+
+        Returns:
+            bytes: The message serialized as a packet, ready to be sent
+        """
         message_id = message.message_id
         payload = message.serialize()
         return uint16_t.pack(message_id) + uint16_t.pack(len(payload)) + payload
 
     @staticmethod
     def deserialize_header(data):
-        """Deserialize a packet into header and payload.
+        """Deserialize a packet into message ID and payload.
 
-        :type data: bytes"""
+        Args:
+            data (bytes): A NatNet packet
+
+        Returns:
+            tuple[MessageId, ParseBuffer]: Message ID and raw payload
+        """
         data = ParseBuffer(data)
         message_id = MessageId(data.unpack(uint16_t))
         length = data.unpack(uint16_t)
@@ -141,13 +191,17 @@ class SerDesRegistry(object):
         return message_id, data
 
     def deserialize_payload(self, message_id, payload_data, version=None, strict=False):
-        """Deserialize the payload of a packet.
+        """Deserialize the payload of a packet into a message instance.
 
-        :type message_id: MessageId
-        :type payload_data: ParseBuffer
-        :type version: Version
-        :param strict: Raise an exception if there is data left in the buffer after parsing.
-        :type strict: bool"""
+        Args:
+            message_id (MessageId)
+            payload_data (ParseBuffer): raw payload
+            version (Version): Protocol version to use when deserializing
+            strict (bool): Raise an exception if there is data left in the buffer after parsing
+
+        Returns:
+            Message instance
+        """
         if version is None:
             version = self._version
         message_type = self._implementation_types[message_id]
@@ -159,12 +213,16 @@ class SerDesRegistry(object):
         return message
 
     def deserialize(self, data, version=None, strict=False):
-        """Deserialize a packet into the message it contains.
+        """Deserialize a packet into a message instance.
 
-        :type data: bytes
-        :type version: Version
-        :param strict: Raise an exception if there is data left in the buffer after parsing.
-        :type strict: bool"""
+        Args:
+            data (bytes): A NatNet packet
+            version (Version): Protocol version to use when deserializing
+            strict (bool): Raise an exception if there is data left in the buffer after parsing.
+
+        Returns:
+            Message instance
+        """
         if version is None:
             version = self._version
         message_id, payload_data = self.deserialize_header(data)
@@ -172,8 +230,29 @@ class SerDesRegistry(object):
 
 
 _registry = SerDesRegistry()
-register_message = _registry.register_message
-serialize = _registry.serialize
-deserialize_header = _registry.deserialize_header
-deserialize_payload = _registry.deserialize_payload
-deserialize = _registry.deserialize
+
+
+# Wrap these so sphinx documents them as proper functions
+@functools.wraps(_registry.register_message)
+def register_message(*args, **kwargs):
+    return _registry.register_message(*args, **kwargs)
+
+
+@functools.wraps(_registry.serialize)
+def serialize(*args, **kwargs):
+    return _registry.serialize(*args, **kwargs)
+
+
+@functools.wraps(_registry.deserialize_header)
+def deserialize_header(*args, **kwargs):
+    return _registry.deserialize_header(*args, **kwargs)
+
+
+@functools.wraps(_registry.deserialize)
+def deserialize(*args, **kwargs):
+    return _registry.deserialize(*args, **kwargs)
+
+
+@functools.wraps(_registry.deserialize_payload)
+def deserialize_payload(*args, **kwargs):
+    return _registry.deserialize_payload(*args, **kwargs)

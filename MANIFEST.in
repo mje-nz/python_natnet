@@ -1,3 +1,4 @@
+graft docs
 graft src
 graft tests
 graft scripts
@@ -8,6 +9,7 @@ prune .idea
 exclude pre-commit-hook
 
 include AUTHORS.rst
+include CONTRIBUTING.rst
 include README.rst
 include LICENSE
 

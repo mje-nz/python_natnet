@@ -32,9 +32,15 @@ NatNet 3 client
 Installation
 ============
 
-For now::
+For now, use::
 
     python setup.py install
+
+to build and install the package, or::
+
+    python setup.py develop
+
+to install in "development mode" i.e. to install symlinks.
 
 
 Development

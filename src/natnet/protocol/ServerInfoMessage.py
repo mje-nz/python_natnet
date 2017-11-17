@@ -30,7 +30,6 @@ class ConnectionInfo(object):
     @property
     def multicast_address(self):
         """Return the multicast address as a string."""
-        # TODO: Should use this instead of hardcoding multicast address
         return socket.inet_ntoa(self._multicast_address)
 
 

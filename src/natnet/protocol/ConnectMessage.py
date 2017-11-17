@@ -9,6 +9,8 @@ from .common import MessageId, Version, register_message
 @attr.s
 class ConnectMessage(object):
 
+    """Connect message (request ServerInfo from server)."""
+
     payload = attr.ib(default='')  # type: str
 
     # Not sure why there are two of these, but the SDK sets them both to (3, 0, 0, 0).  Could be min
@@ -20,8 +22,10 @@ class ConnectMessage(object):
     def deserialize(cls, data, version):
         """Deserialize a Connect message.
 
-        :type data: ParseBuffer
-        :type version: Version"""
+        Args:
+            data (ParseBuffer):
+            version (Version)
+        """
 
         # TODO: Check SDK implementation
 
