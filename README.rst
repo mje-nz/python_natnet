@@ -7,8 +7,14 @@ Overview
 .. list-table::
     :stub-columns: 1
 
+    * - docs
+      - |docs|
     * - tests
       - | |travis| |appveyor| |codecov|
+
+.. |docs| image:: https://readthedocs.org/projects/python_natnet/badge/?style=flat
+    :target: https://readthedocs.org/projects/python_natnet
+    :alt: Documentation Status
 
 .. |travis| image:: https://travis-ci.org/mje-nz/python_natnet.svg?branch=master
     :alt: Travis-CI Build Status
