@@ -10,17 +10,17 @@ Overview
     * - tests
       - | |travis| |appveyor| |codecov|
 
-.. |travis| image:: https://travis-ci.org/mje-nz/python-natnet.svg?branch=master
+.. |travis| image:: https://travis-ci.org/mje-nz/python_natnet.svg?branch=master
     :alt: Travis-CI Build Status
-    :target: https://travis-ci.org/mje-nz/python-natnet
+    :target: https://travis-ci.org/mje-nz/python_natnet
 
-.. |appveyor| image:: https://ci.appveyor.com/api/projects/status/github/mje-nz/python-natnet?branch=master&svg=true
+.. |appveyor| image:: https://ci.appveyor.com/api/projects/status/github/mje-nz/python_natnet?branch=master&svg=true
     :alt: AppVeyor Build Status
-    :target: https://ci.appveyor.com/project/mje-nz/python-natnet
+    :target: https://ci.appveyor.com/project/mje-nz/python_natnet
 
-.. |codecov| image:: https://codecov.io/github/mje-nz/python-natnet/coverage.svg?branch=master
+.. |codecov| image:: https://codecov.io/github/mje-nz/python_natnet/coverage.svg?branch=master
     :alt: Coverage Status
-    :target: https://codecov.io/github/mje-nz/python-natnet
+    :target: https://codecov.io/github/mje-nz/python_natnet
 
 .. end-badges
 

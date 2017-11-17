@@ -27,7 +27,7 @@ setup(
             .sub('', read('README.rst')),
     author='Matthew Edwards',
     author_email='matthew@matthewedwards.co.nz',
-    url='https://github.com/mje-nz/python-natnet',
+    url='https://github.com/mje-nz/python_natnet',
     packages=find_packages('src'),
     package_dir={'': 'src'},
     py_modules=[splitext(basename(path))[0] for path in glob('src/*.py')],
@@ -45,7 +45,7 @@ setup(
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: Implementation :: CPython'
     ],
-    keywords='natnet NaturalPoint Optitrack motion capure mocap',
+    keywords='natnet NaturalPoint Optitrack motion capture mocap',
     install_requires=[
         'attrs>=15.2'
     ],

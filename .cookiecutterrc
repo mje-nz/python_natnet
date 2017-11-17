@@ -24,7 +24,7 @@ cookiecutter:
     project_name: natnet
     project_short_description: NatNet 3 client
     release_date: today
-    repo_name: python-natnet
+    repo_name: python_natnet
     requiresio: 'no'
     scrutinizer: 'no'
     sphinx_doctest: 'no'

@@ -52,7 +52,7 @@ def main(server_name):
             message = Marker()
             message.header.frame_id = MOCAP_FRAME
             message.header.stamp = rospy.Time(timing.timestamp)
-            message.ns = 'python-natnet'
+            message.ns = 'python_natnet'
             message.id = 0
             message.type = Marker.SPHERE_LIST
             positions = [Point(*m.position) for m in markers]
