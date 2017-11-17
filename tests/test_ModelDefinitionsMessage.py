@@ -8,7 +8,7 @@ from natnet.protocol.ModelDefinitionsMessage import MarkerSetDescription, RigidB
 
 def test_parse_modeldef_packet_v3():
     """Test parsing a NatNet 3.0 packet containing a ModelDefinitions message."""
-    packet = open('tests/modeldef_packet_v3.bin', 'rb').read()
+    packet = open('test_data/modeldef_packet_v3.bin', 'rb').read()
     modeldef = deserialize(packet, Version(3), strict=True)  # type: ModelDefinitionsMessage
 
     # These values are verified against SampleClient where easy

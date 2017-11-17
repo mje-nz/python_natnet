@@ -58,9 +58,9 @@ class FakeClockSynchronizer(ClockSynchronizer):
 
 @pytest.fixture(scope='module')
 def test_packets():
-    server_info_packet = open('tests/serverinfo_packet_v3.bin', 'rb').read()
-    mocapframe_packet = open('tests/mocapframe_packet_v3.bin', 'rb').read()
-    modeldef_packet = open('tests/modeldef_packet_v3.bin', 'rb').read()
+    server_info_packet = open('test_data/serverinfo_packet_v3.bin', 'rb').read()
+    mocapframe_packet = open('test_data/mocapframe_packet_v3.bin', 'rb').read()
+    modeldef_packet = open('test_data/modeldef_packet_v3.bin', 'rb').read()
     return server_info_packet, mocapframe_packet, modeldef_packet
 
 

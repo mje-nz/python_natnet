@@ -5,7 +5,7 @@ from natnet.protocol import ServerInfoMessage, Version, deserialize  # noqa: F40
 
 def test_parse_serverinfo_packet_v3():
     """Test parsing a NatNet 3.0 packet containing a ServerInfo message."""
-    packet = open('tests/serverinfo_packet_v3.bin', 'rb').read()
+    packet = open('test_data/serverinfo_packet_v3.bin', 'rb').read()
     info = deserialize(packet, Version(3), strict=True)  # type: ServerInfoMessage
 
     # These values are verified against SampleClient where easy
@@ -21,5 +21,5 @@ def test_parse_serverinfo_packet_v3():
 
 def test_deserialize_serverinfo(benchmark):
     """Benchmark parsing a NatNet 3.0 packet containing a ServerInfo message."""
-    packet = open('tests/serverinfo_packet_v3.bin', 'rb').read()
+    packet = open('test_data/serverinfo_packet_v3.bin', 'rb').read()
     benchmark(deserialize, packet, Version(3))
