@@ -4,56 +4,28 @@ import mock
 import pytest
 
 import natnet
-from natnet.comms import ClockSynchronizer, Connection
+from natnet.fakes import FakeClockSynchronizer, FakeConnection, SingleFrameFakeClient
 
 
-class FakeConnection(Connection):
+@pytest.fixture(scope='module', autouse=True)
+def patch_socket_module():
+    """Make sure nothing creates a socket by mistake."""
 
-    def __init__(self, packets=None, received_times=None):
-        """Fake connection which "receives" packets from a list, then raises SystemExit when it runs out of packets.
+    def throw(*args, **kwargs):
+        raise RuntimeError('Tried to create socket during testing')
 
-        Args:
-            packets (list): Packets (from first to last)
-            received_times (list): Received times
-        """
-        super(FakeConnection, self).__init__(command_socket=None, data_socket=None, command_address=None)
-        self.packets = packets or []
-        self.received_times = received_times or []
-        assert len(self.packets) == len(self.received_times)
-
-    def add_packet(self, packet, received_time):
-        self.packets.append(packet)
-        self.received_times.append(received_time)
-
-    def add_message(self, message, received_time):
-        self.add_packet(natnet.protocol.serialize(message), received_time)
-
-    def wait_for_packet_raw(self, timeout=None):
-        if self.packets:
-            return self.packets.pop(0), self.received_times.pop(0)
-        else:
-            raise SystemExit
-
-    def send_packet(self, *args, **kwargs):
-        pass
-
-    def bind_data_socket(self, *args, **kwargs):
-        pass
+    import socket
+    old_socket = socket.socket
+    socket.socket = throw
+    yield
+    socket.socket = old_socket
 
 
-class FakeClockSynchronizer(ClockSynchronizer):
+def test_patching_socket_module_worked():
+    import socket
 
-    """Fake clock synchronizer that pretends the local clock is the same as the server clock."""
-
-    def update(self, *args, **kwargs):
-        # Don't send any packets
-        pass
-
-    def server_to_local_time(self, server_ticks):
-        return self.server_ticks_to_seconds(server_ticks)
-
-    def initial_sync(self, *args, **kwargs):
-        pass
+    with pytest.raises(RuntimeError):
+        s = socket.socket()  # noqa: F841
 
 
 @pytest.fixture(scope='module')
@@ -118,7 +90,7 @@ def test_client_calls_synchronizer_for_echo_response(client_with_fakes):
     echo_response_message = natnet.protocol.EchoResponseMessage(0, 0)
 
     # Set wait_for_message to return a FrameOfData the first time, then raise SystemExit the second time
-    client._conn.add_message(echo_response_message, 0)
+    client._conn.add_message(echo_response_message)
 
     # Run the Client main loop
     client._clock_synchronizer.handle_echo_response = mock.Mock()
@@ -135,7 +107,7 @@ def test_client_connect(test_packets):
         with mock.patch('natnet.comms.Connection') as MockedConnectionCls:
             # Make Connection.open(*) return a fake connection
             server_info_packet, _, modeldef_packet = test_packets
-            conn = FakeConnection([server_info_packet, modeldef_packet], [0, 0])
+            conn = FakeConnection([server_info_packet, modeldef_packet])
             mock_conn = mock.Mock(wraps=conn)  # Add assert_called etc
             MockedConnectionCls.open.return_value = mock_conn
 
@@ -144,5 +116,38 @@ def test_client_connect(test_packets):
 
     # Checks
     assert client._conn.send_message.call_args_list[0] == mock.call(natnet.protocol.ConnectMessage())
-    assert len(conn.packets) == 0
+    assert conn.packets_remaining == 0
     client._conn.bind_data_socket.assert_called_once()
+
+
+def test_fakeconnection_repeat(test_packets):
+    """Test fakes.FakeConnection repeats when repeat=True."""
+    server_info_packet, mocapframe_packet, modeldef_packet = test_packets
+    conn = FakeConnection([server_info_packet], repeat=True)
+
+    assert conn.wait_for_packet_raw() == (server_info_packet, 0)
+    assert conn.wait_for_packet_raw() == (server_info_packet, 0)
+    assert conn.wait_for_packet_raw() == (server_info_packet, 0)
+    assert conn.wait_for_packet_raw() == (server_info_packet, 0)
+
+
+def test_single_frame_fake_client():
+    """Test public FakeClient interfaced in demo script and ROS node."""
+    client = SingleFrameFakeClient.fake_connect()
+
+    # Check callback is called
+    callback = mock.Mock()
+    client.set_callback(callback)
+    client.run_once()
+    callback.assert_called_once()
+    (rigid_bodies, labelled_markers, timing), _ = callback.call_args
+    # Don't really care what these are
+    assert rigid_bodies is not None
+    assert labelled_markers is not None
+    assert timing is not None
+
+    # Try again to make sure it repeats
+    callback = mock.Mock()
+    client.set_callback(callback)
+    client.run_once()
+    callback.assert_called_once()
