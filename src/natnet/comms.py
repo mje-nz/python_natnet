@@ -6,6 +6,7 @@ Note that all local timestamps (e.g. packet reception time) are from :func:`time
 
 from __future__ import print_function
 
+import collections
 import select
 import socket
 import struct
@@ -14,7 +15,8 @@ import timeit
 import attr
 
 from . import protocol
-from .protocol.ModelDefinitionsMessage import RigidBodyDescription
+from .protocol.ModelDefinitionsMessage import (MarkersetDescription, RigidBodyDescription,
+                                               SkeletonDescription)
 
 __all__ = ['Client', 'Connection', 'TimestampAndLatency']
 
@@ -301,8 +303,9 @@ class Client(object):
 
     _conn = attr.ib()  # type: Connection
     _clock_synchronizer = attr.ib()  # type: ClockSynchronizer
-    rigid_body_names = attr.ib(attr.Factory(dict))  # type: dict[int, str]
+    _model_definitions = attr.ib(attr.Factory(list))  # type: list
     _callback = attr.ib(None)
+    _model_callback = attr.ib(None)
 
     @classmethod
     def connect(cls, server):
@@ -340,24 +343,50 @@ class Client(object):
         """Set the frame callback.
 
         It will be called with a list of :class:`~natnet.protocol.MocapFrameMessage.RigidBody`, a list of
-        :class:`~natnet.protocol.MocapFrameMessage.LabelledMarker`, and a :class:`TimestampAndLatency`.
+        :class:`~natnet.protocol.MocapFrameMessage.LabelledMarker`, and a :class:`~natnet.comms.TimestampAndLatency`.
         """
         self._callback = callback
+
+    def _call_model_callback(self):
+        if not self._model_callback:
+            return
+        rigid_body_descriptions = [m for m in self._model_definitions if type(m) is RigidBodyDescription]
+        skeleton_descriptions = [m for m in self._model_definitions if type(m) is SkeletonDescription]
+        markerset_descriptions = [m for m in self._model_definitions if type(m) is MarkersetDescription]
+        self._model_callback(rigid_body_descriptions, skeleton_descriptions, markerset_descriptions)
+
+    def set_model_callback(self, callback):
+        """Set the model definition callback.
+
+        It will be called with a list of :class:`~natnet.protocol.ModelDefinitionsMessage.RigidBodyDescription`, a list
+        of :class:`~natnet.protocol.ModelDefinitionsMessage.SkeletonDescription`, and a list of
+        :class:`~natnet.protocol.ModelDefinitionsMessage.MarkersetDescription`, immediately and whenever the tracked
+        models change.
+        """
+        assert callback is not None
+        self._model_callback = callback
+        self._call_model_callback()
 
     def _handle_model_definitions(self, model_definitions_message):
         """Update local list of rigid body id:name mappings.
 
         :type model_definitions_message: protocol.ModelDefinitionsMessage
         """
-        models = model_definitions_message.models
-        rigid_body_descriptions = [m for m in models if type(m) is RigidBodyDescription]
-        self.rigid_body_names = {m.id_: m.name for m in rigid_body_descriptions}
-        print('Rigid body names:', self.rigid_body_names)
-        if len(rigid_body_descriptions) > len(self.rigid_body_names):
-            names = [m.name for m in rigid_body_descriptions]
-            missing_bodies = [n for n in names if n not in self.rigid_body_names.values()]
-            print('Warning: duplicate streaming IDs detected (ignoring {})'
-                  .format(', '.join(repr(m) for m in missing_bodies)))
+        self._model_definitions = model_definitions_message.models
+
+        # TODO: Figure out what to do when there are duplicate streaming IDs
+
+        # Sanity check
+        rigid_bodies = [m for m in self._model_definitions if type(m) is RigidBodyDescription]
+        rigid_body_ids = set(m.id_ for m in rigid_bodies)
+        if len(rigid_body_ids) != len(rigid_bodies):
+            names = collections.defaultdict(list)
+            for b in rigid_bodies:
+                names[b.id_].append(b.name)
+            duplicates = {id_: names_ for id_, names_ in names.items() if len(names_) > 1}
+            print('Warning: multiple rigid bodies with the same streaming ID detected ({})'.format(duplicates))
+
+        self._call_model_callback()
 
     def run_once(self, timeout=None):
         """Receive and process one message."""

@@ -102,6 +102,34 @@ def test_client_calls_synchronizer_for_echo_response(client_with_fakes):
     assert args == (echo_response_message, 0)
 
 
+def test_client_calls_callback_for_modeldef(client_with_fakes, test_packets, test_messages):
+    client = client_with_fakes
+    _, _, modeldef_packet = test_packets
+    _, _, modeldef_message = test_messages
+
+    client._conn.add_packet(modeldef_packet)
+    callback = mock.Mock()
+    client.set_model_callback(callback)
+
+    # Check callback called immediately
+    callback.assert_called_once()
+    # Fake client doesn't have any model definitions on startup
+    assert callback.call_args_list[0] == mock.call([], [], [])
+
+    # Check callback called with new model definitions when ModelDef message is received
+    client.run_once()
+    assert callback.call_count == 2
+    args, kwargs = callback.call_args_list[1]
+    assert kwargs == {}
+    rigid_body_descriptions, skeleton_descriptions, markerset_descriptions = args
+    assert len(rigid_body_descriptions) == 1
+    assert rigid_body_descriptions[0].name == 'RaceQuad'
+    assert skeleton_descriptions == []
+    assert len(markerset_descriptions) == 2
+    assert markerset_descriptions[0].name == 'RaceQuad'
+    assert markerset_descriptions[1].name == 'all'
+
+
 def test_client_connect(test_packets):
     with mock.patch('natnet.comms.ClockSynchronizer'):
         with mock.patch('natnet.comms.Connection') as MockedConnectionCls:
@@ -116,6 +144,7 @@ def test_client_connect(test_packets):
 
     # Checks
     assert client._conn.send_message.call_args_list[0] == mock.call(natnet.protocol.ConnectMessage())
+    assert client._conn.send_message.call_args_list[1] == mock.call(natnet.protocol.RequestModelDefinitionsMessage())
     assert conn.packets_remaining == 0
     client._conn.bind_data_socket.assert_called_once()
 
@@ -131,7 +160,7 @@ def test_fakeconnection_repeat(test_packets):
     assert conn.wait_for_packet_raw() == (server_info_packet, 0)
 
 
-def test_single_frame_fake_client():
+def test_single_frame_fake_client_repeats_frame():
     """Test public FakeClient interfaced in demo script and ROS node."""
     client = SingleFrameFakeClient.fake_connect()
 
@@ -151,3 +180,17 @@ def test_single_frame_fake_client():
     client.set_callback(callback)
     client.run_once()
     callback.assert_called_once()
+
+
+def test_single_frame_fake_client_has_modeldef():
+    client = SingleFrameFakeClient.fake_connect()
+
+    # Check callback is called
+    callback = mock.Mock()
+    client.set_model_callback(callback)
+    callback.assert_called_once()
+    (rigid_bodies, skeletons, markersets), _ = callback.call_args
+    # Don't really care what these are
+    assert len(rigid_bodies) == 1
+    assert len(skeletons) == 0
+    assert len(markersets) == 2

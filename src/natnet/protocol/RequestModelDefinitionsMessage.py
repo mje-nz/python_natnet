@@ -1,9 +1,12 @@
 # coding: utf-8
 
+import attr
+
 from .common import MessageId, register_message
 
 
 @register_message(MessageId.RequestModelDef)
+@attr.s
 class RequestModelDefinitionsMessage(object):
 
     @classmethod

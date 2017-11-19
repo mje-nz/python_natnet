@@ -1,5 +1,13 @@
 # coding: utf-8
 
+"""This message contains descriptions of all tracked models (rigid bodies, skeletons, markersets) and devices.
+
+It is not sent automatically when tracked models changes. The next FrameOfData will have a flag set, then the client
+sends a RequestModelDefinitions message to prompt the server to send this.
+"""
+
+__all__ = ['ModelDefinitionsMessage', 'MarkersetDescription', 'RigidBodyDescription', 'SkeletonDescription',
+           'ForcePlateDescription', 'DeviceDescription']
 try:
     # Only need this for type annotations
     from typing import Optional  # noqa: F401
@@ -14,9 +22,16 @@ from .common import MessageId, Version, int32_t, register_message, uint32_t, vec
 
 
 @attr.s
-class MarkerSetDescription(object):
+class MarkersetDescription(object):
 
-    name = attr.ib()  # type: str
+    """Description of a markerset.
+
+    Attributes:
+        name (str):
+        marker_names: (list[str])
+    """
+
+    name = attr.ib()
     marker_names = attr.ib()
 
     @classmethod
@@ -30,12 +45,24 @@ class MarkerSetDescription(object):
 @attr.s
 class RigidBodyDescription(object):
 
+    """Description of a rigid body.
+
+    Attributes:
+        name (str): Rigid body name if available
+        id\_ (int): Streaming ID
+        parent_id (int): For a rigid body which is part of a hierarchy (i.e., a skeleton), the ID of the parent rigid
+            body
+        offset_from_parent (tuple[float, float, float]): (x, y, z) offset relative to parent
+        marker_positions (list[tuple[float, float, float]]): List of marker positions, if available
+        required_active_labels (list[int]): List of expected active marker labels, if available
+    """
+
     name = attr.ib()  # type: Optional[str]
-    id_ = attr.ib()  # type: int
-    parent_id = attr.ib()  # type: int
+    id_ = attr.ib()
+    parent_id = attr.ib()
     offset_from_parent = attr.ib()
-    marker_positions = attr.ib()
-    required_active_labels = attr.ib()  # type: list[int]
+    marker_positions = attr.ib()  # type: Optional[list[float, float, float]]
+    required_active_labels = attr.ib()
 
     @classmethod
     def deserialize(cls, data, version, skip_markers=None):
@@ -65,9 +92,17 @@ class RigidBodyDescription(object):
 @attr.s
 class SkeletonDescription(object):
 
-    name = attr.ib()  # type: str
-    id_ = attr.ib()  # type: int
-    rigid_bodies = attr.ib()  # type: list[RigidBodyDescription]
+    """Description of a skeleton.
+
+    Attributes:
+        name (str):
+        id\_ (int): Streaming ID
+        rigid_bodies (list[:class:`RigidBodyDescription`]):
+    """
+
+    name = attr.ib()
+    id_ = attr.ib()
+    rigid_bodies = attr.ib()
 
     @classmethod
     def deserialize(cls, data, version=None):
@@ -128,6 +163,12 @@ class ModelType(enum.IntEnum):
 @attr.s
 class ModelDefinitionsMessage(object):
 
+    """Tracked model definitions.
+
+    Attributes:
+        models: Mixed list of :class:`MarkersetDescription`, :class:`RigidBodyDescription`,
+            :class:`SkeletonDescription`, :class:`ForcePlateDescription`, and :class:`DeviceDescription`."""
+
     models = attr.ib()  # type: list
 
     @classmethod
@@ -138,7 +179,7 @@ class ModelDefinitionsMessage(object):
         for i in range(definition_count):
             model_type = data.unpack(uint32_t)
             if model_type == ModelType.MarkerSet:
-                models.append(MarkerSetDescription.deserialize(data, version))
+                models.append(MarkersetDescription.deserialize(data, version))
             elif model_type == ModelType.RigidBody:
                 models.append(RigidBodyDescription.deserialize(data, version))
             elif model_type == ModelType.Skeleton:

@@ -85,9 +85,13 @@ class SingleFrameFakeClient(Client):
 
     @classmethod
     def fake_connect(cls, test_data_folder='test_data', frame_packet_filename='mocapframe_packet_v3.bin',
-                     serverinfo_packet_filename='serverinfo_packet_v3.bin'):
+                     serverinfo_packet_filename='serverinfo_packet_v3.bin',
+                     modeldef_packet_filename='modeldef_packet_v3.bin'):
         frame_packet = open(os.path.join(test_data_folder, frame_packet_filename), 'rb').read()
         server_info_packet = open(os.path.join(test_data_folder, serverinfo_packet_filename), 'rb').read()
+        model_definitions_packet = open(os.path.join(test_data_folder, modeldef_packet_filename), 'rb').read()
         conn = FakeConnection([frame_packet], repeat=True)
         clock_synchronizer = FakeClockSynchronizer(deserialize(server_info_packet))
-        return cls(conn, clock_synchronizer)
+        inst = cls(conn, clock_synchronizer)
+        inst._handle_model_definitions(deserialize(model_definitions_packet))
+        return inst

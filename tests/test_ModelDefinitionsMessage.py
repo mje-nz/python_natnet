@@ -3,7 +3,7 @@
 import pytest
 
 from natnet.protocol import ModelDefinitionsMessage, Version, deserialize  # noqa: F401
-from natnet.protocol.ModelDefinitionsMessage import MarkerSetDescription, RigidBodyDescription
+from natnet.protocol.ModelDefinitionsMessage import MarkersetDescription, RigidBodyDescription
 
 
 def test_parse_modeldef_packet_v3():
@@ -29,14 +29,14 @@ def test_parse_modeldef_packet_v3():
     assert rb.marker_positions[4] == pytest.approx((-0.0580382, -0.0319419, -0.136807))
 
     # RaceQuad markerset definition
-    ms1 = modeldef.models[1]  # type: MarkerSetDescription
-    assert type(ms1) == MarkerSetDescription
+    ms1 = modeldef.models[1]  # type: MarkersetDescription
+    assert type(ms1) == MarkersetDescription
     assert ms1.name == 'RaceQuad'
     assert ms1.marker_names == ['Marker1', 'Marker2', 'Marker3', 'Marker4', 'Marker5']
 
     # 'all' markerset definition
-    ms2 = modeldef.models[2]  # type: MarkerSetDescription
-    assert type(ms2) == MarkerSetDescription
+    ms2 = modeldef.models[2]  # type: MarkersetDescription
+    assert type(ms2) == MarkersetDescription
     assert ms2.name == 'all'
     assert ms2.marker_names == ['RaceQuad_1', 'RaceQuad_2', 'RaceQuad_3', 'RaceQuad_4',
                                 'RaceQuad_5']

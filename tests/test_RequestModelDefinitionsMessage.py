@@ -17,3 +17,7 @@ def test_serialize_requestmodeldef_message():
     actual = serialize(RequestModelDefinitionsMessage())
 
     assert actual == expected
+
+
+def test_requestmodeldef_equal():
+    assert RequestModelDefinitionsMessage() == RequestModelDefinitionsMessage()

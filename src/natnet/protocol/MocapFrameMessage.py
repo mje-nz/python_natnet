@@ -117,7 +117,7 @@ class Skeleton(object):
     Apparently the rigid bodies will have their ID equal to skeleton_id << 16 + bone_id.
 
     Attributes:
-        id_ (int): Skeleton ID (I'm not sure where this is set)
+        id\_ (int): Skeleton ID (I'm not sure where this is set)
         rigid_bodies (list[:class:`RigidBody`]):
     """
 
