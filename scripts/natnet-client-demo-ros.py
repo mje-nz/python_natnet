@@ -77,7 +77,7 @@ def main(server_name):
                     pub.publish(message)
 
     if server_name == 'fake':
-        client = natnet.fakes.FakeClient.fake_connect()
+        client = natnet.fakes.SingleFrameFakeClient.fake_connect()
     else:
         client = natnet.Client.connect(server_name)
     client.set_callback(callback)

@@ -24,7 +24,7 @@ class ClientApp(object):
     @classmethod
     def connect(cls, server_name, timeout, quiet):
         if server_name == 'fake':
-            client = natnet.fakes.FakeClient.fake_connect()
+            client = natnet.fakes.SingleFrameFakeClient.fake_connect()
         else:
             client = natnet.Client.connect(server_name)
         return cls(client, timeout, quiet)
