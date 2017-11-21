@@ -195,7 +195,10 @@ class ClockSynchronizer(object):
         conn.send_message(protocol.EchoRequestMessage(sent_timestamp_int))
 
     def handle_echo_response(self, response, received_time):
-        assert response.request_timestamp == int(self._last_sent_time*1e9)
+        if response.request_timestamp != int(self._last_sent_time*1e9):
+            print('Warning: echo response does not match last echo request (last sent at {}, received response for {})'
+                  .format(self._last_sent_time*1e9, response.request_timestamp))
+            return
         rtt = received_time - self._last_sent_time
         server_reception_time = self.server_ticks_to_seconds(response.received_timestamp)
         if self._last_server_time is None:
