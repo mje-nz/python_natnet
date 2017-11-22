@@ -5,6 +5,7 @@ __all__ = ['SingleFrameFakeClient']
 import os.path
 
 from .comms import Client, ClockSynchronizer, Connection
+from .logging import Logger
 from .protocol import deserialize, serialize
 
 
@@ -84,14 +85,15 @@ class SingleFrameFakeClient(Client):
     """Fake NatNet client that just returns the same pre-recorded frame packet repeatedly."""
 
     @classmethod
-    def fake_connect(cls, test_data_folder='test_data', frame_packet_filename='mocapframe_packet_v3.bin',
+    def fake_connect(cls, logger=Logger(), test_data_folder='test_data',
+                     frame_packet_filename='mocapframe_packet_v3.bin',
                      serverinfo_packet_filename='serverinfo_packet_v3.bin',
                      modeldef_packet_filename='modeldef_packet_v3.bin'):
         frame_packet = open(os.path.join(test_data_folder, frame_packet_filename), 'rb').read()
         server_info_packet = open(os.path.join(test_data_folder, serverinfo_packet_filename), 'rb').read()
         model_definitions_packet = open(os.path.join(test_data_folder, modeldef_packet_filename), 'rb').read()
         conn = FakeConnection([frame_packet], repeat=True)
-        clock_synchronizer = FakeClockSynchronizer(deserialize(server_info_packet))
-        inst = cls(conn, clock_synchronizer)
+        clock_synchronizer = FakeClockSynchronizer(deserialize(server_info_packet), logger)
+        inst = cls(conn, clock_synchronizer, logger)
         inst._handle_model_definitions(deserialize(model_definitions_packet))
         return inst

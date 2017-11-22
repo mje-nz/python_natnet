@@ -50,8 +50,9 @@ def client_with_fakes(test_messages):
     """Create client with fake connection and clock synchronizer."""
     server_info_message, _, _ = test_messages
     conn = FakeConnection()
-    clock_synchronizer = FakeClockSynchronizer(server_info_message)
-    return natnet.Client(conn, clock_synchronizer)
+    log = natnet.Logger()
+    clock_synchronizer = FakeClockSynchronizer(server_info_message, log)
+    return natnet.Client(conn, clock_synchronizer, log)
 
 
 def test_client_calls_callback_for_mocapframe(client_with_fakes, test_packets, test_messages):

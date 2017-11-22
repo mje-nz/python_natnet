@@ -4,8 +4,6 @@
 Note that all local timestamps (e.g. packet reception time) are from :func:`timeit.default_timer`.
 """
 
-from __future__ import print_function
-
 import collections
 import select
 import socket
@@ -15,6 +13,7 @@ import timeit
 import attr
 
 from . import protocol
+from .logging import Logger
 from .protocol.ModelDefinitionsMessage import (MarkersetDescription, RigidBodyDescription,
                                                SkeletonDescription)
 
@@ -149,6 +148,7 @@ class ClockSynchronizer(object):
     """Synchronize clocks with a NatNet server using Cristian's algorithm."""
 
     _server_info = attr.ib()
+    _log = attr.ib()  # type: Logger
     _last_server_time = attr.ib(None)
     _last_synced_at = attr.ib(None)
     _min_rtt = attr.ib(1e-3)
@@ -167,7 +167,8 @@ class ClockSynchronizer(object):
             response, received_time = conn.wait_for_message_with_id(protocol.MessageId.EchoResponse,
                                                                     timeout=0.1)
             if response is None:
-                print('Timeout out while waiting for echo response {}'.format(self._echo_count + 1))
+                self._log.warning('Timeout out while waiting for echo response {}'
+                                  .format(self._echo_count + 1))
             self.handle_echo_response(response, received_time)
 
     def server_ticks_to_seconds(self, server_ticks):
@@ -196,8 +197,9 @@ class ClockSynchronizer(object):
 
     def handle_echo_response(self, response, received_time):
         if response.request_timestamp != int(self._last_sent_time*1e9):
-            print('Warning: echo response does not match last echo request (last sent at {}, received response for {})'
-                  .format(self._last_sent_time*1e9, response.request_timestamp))
+            self._log.warning('Warning: echo response does not match last echo request ' +
+                              '(last sent at {}, received response for {})'
+                              .format(self._last_sent_time*1e9, response.request_timestamp))
             return
         rtt = received_time - self._last_sent_time
         server_reception_time = self.server_ticks_to_seconds(response.received_timestamp)
@@ -205,7 +207,8 @@ class ClockSynchronizer(object):
             # First echo, initialize
             self._last_server_time = server_reception_time + rtt/2
             self._last_synced_at = received_time
-            print('First echo: RTT {:.2f}ms, server time {:.1f}'.format(1000*rtt, self._last_server_time))
+            self._log.debug('First echo: RTT {:.2f}ms, server time {:.1f}'
+                            .format(1000*rtt, self._last_server_time))
         else:
             # The true server time falls within server_reception_time +- (rtt - true_min_rtt)/2.
             # We'd generally like to be within 0.1ms of the actual time, which would require the RTT
@@ -232,9 +235,9 @@ class ClockSynchronizer(object):
                     else:
                         # Slowly converge on the true skew
                         self._skew += drift/2
-                print(
-                    'Echo {: 5d}: RTT {:.2f}ms (min {:.2f}ms), server time {:.1f}s, dt {: .3f}s, '
-                    'correction {: .3f}ms, drift {:7.3f}ms/s, new skew: {: .3f}ms/s'
+                self._log.debug(
+                    ('Echo {: 5d}: RTT {:.2f}ms (min {:.2f}ms), server time {:.1f}s, ' +
+                     'dt {: .3f}s, correction {: .3f}ms, drift {:7.3f}ms/s, new skew: {: .3f}ms/s')
                     .format(self._echo_count, 1000*rtt, 1000*self._min_rtt, self._last_server_time,
                             dt, 1000*correction, 1000*drift, 1000*self._skew))
 
@@ -306,40 +309,42 @@ class Client(object):
 
     _conn = attr.ib()  # type: Connection
     _clock_synchronizer = attr.ib()  # type: ClockSynchronizer
+    _log = attr.ib()  # type: Logger
     _model_definitions = attr.ib(attr.Factory(list))  # type: list
     _callback = attr.ib(None)
     _model_callback = attr.ib(None)
 
     @classmethod
-    def connect(cls, server):
+    def connect(cls, server, logger=Logger()):
         """Connect to a NatNet server.
 
         Args:
             server (str): IPv4 address of server (hostname probably works too)
+            logger (:class:`~logging.Logger`):
         """
-        print('Connecting to', server)
+        logger.info('Connecting to %s', server)
         conn = Connection.open(server)
 
-        print('Getting server info')
+        logger.debug('Getting server info')
         conn.send_message(protocol.ConnectMessage())
         server_info, received_time = conn.wait_for_message_with_id(protocol.MessageId.ServerInfo)
-        print('Server application:', server_info.app_name)
-        print('Server version:', server_info.app_version)
+        logger.debug('Server application: %s', server_info.app_name)
+        logger.debug('Server version: %s', server_info.app_version)
         assert server_info.connection_info.multicast
         conn.bind_data_socket(server_info.connection_info.multicast_address,
                               server_info.connection_info.data_port)
 
-        print('Synchronizing clocks')
-        clock_synchronizer = ClockSynchronizer(server_info)
+        logger.debug('Synchronizing clocks')
+        clock_synchronizer = ClockSynchronizer(server_info, logger)
         clock_synchronizer.initial_sync(conn)
-        inst = cls(conn, clock_synchronizer)
+        inst = cls(conn, clock_synchronizer, logger)
 
-        print('Getting data descriptions')
+        logger.debug('Getting data descriptions')
         conn.send_message(protocol.RequestModelDefinitionsMessage())
         model_definitions_message, _ = conn.wait_for_message_with_id(protocol.MessageId.ModelDef)
         inst._handle_model_definitions(model_definitions_message)
 
-        print('Ready')
+        logger.info('Ready')
         return inst
 
     def set_callback(self, callback):
@@ -387,7 +392,8 @@ class Client(object):
             for b in rigid_bodies:
                 names[b.id_].append(b.name)
             duplicates = {id_: names_ for id_, names_ in names.items() if len(names_) > 1}
-            print('Warning: multiple rigid bodies with the same streaming ID detected ({})'.format(duplicates))
+            self._log.warning('Warning: multiple rigid bodies with the same streaming ID detected ({})'
+                              .format(duplicates))
 
         self._call_model_callback()
 
@@ -395,7 +401,7 @@ class Client(object):
         """Receive and process one message."""
         message_id, payload, received_time = self._conn.wait_for_packet(timeout)
         if message_id is None:
-            print('Timed out waiting for packet')
+            self._log.warning('Timed out waiting for packet')
             return
         if message_id == protocol.MessageId.FrameOfData:
             if self._callback:
@@ -407,7 +413,7 @@ class Client(object):
                 self._callback(rigid_bodies, labelled_markers, timestamp_and_latency)
 
                 if frame.tracked_models_changed:
-                    print('Tracked models have changed, requesting new model definitions')
+                    self._log.info('Tracked models have changed, requesting new model definitions')
                     self._conn.send_packet(protocol.serialize(
                         protocol.RequestModelDefinitionsMessage()))
         elif message_id == protocol.MessageId.ModelDef:
@@ -417,7 +423,7 @@ class Client(object):
             echo_response_message = protocol.deserialize_payload(message_id, payload)
             self._clock_synchronizer.handle_echo_response(echo_response_message, received_time)
         else:
-            print('Unhandled message type:', message_id.name)
+            self._log.error('Unhandled message type:', message_id.name)
         self._clock_synchronizer.update(self._conn)
 
     def spin(self, timeout=None):
@@ -426,4 +432,4 @@ class Client(object):
             while True:
                 self.run_once(timeout)
         except (KeyboardInterrupt, SystemExit):
-            print('Exiting')
+            self._log.info('Exiting')
