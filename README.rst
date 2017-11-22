@@ -36,6 +36,7 @@ Features:
 
 * Supports rigid bodies and markers
 * Synchronizes clocks with the server to calculate correct frame timestamps
+* Server autodiscovery
 * Free software: BSD 3-Clause License
 
 See also:

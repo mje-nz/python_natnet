@@ -70,7 +70,7 @@ class ClientApp(object):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--server', default='192.168.0.106')
+    parser.add_argument('--server')
     parser.add_argument('--timeout', type=float)
     parser.add_argument('--quiet', action='store_true')
     args = parser.parse_args()

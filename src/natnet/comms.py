@@ -23,11 +23,22 @@ __all__ = ['Client', 'Connection', 'TimestampAndLatency']
 @attr.s
 class Connection(object):
 
-    """Connection to NatNet server."""
+    """Connection to NatNet server.
+
+    Attributes:
+        last_sender_address (tuple[str, int]): Sending IP and port of last packet received.
+    """
 
     _command_socket = attr.ib()  # type: socket.socket
     _data_socket = attr.ib()  # type: socket.socket
     _command_address = attr.ib()  # type: tuple[str, int]
+    last_sender_address = attr.ib(None)
+
+    def set_server_address(self, server=None, command_port=None):
+        current_server, current_command_port = self._command_address
+        command_address = (server or current_server, command_port or current_command_port)
+        assert None not in command_address
+        self._command_address = command_address
 
     def bind_data_socket(self, multicast_addr, data_port):
         """Bind data socket and begin receiving mocap frames.
@@ -103,7 +114,7 @@ class Connection(object):
         received_time = None
         if len(readable) > 0:
             # Just get the first message this time around
-            data, address = readable[0].recvfrom(32768)  # type: bytes
+            data, self.last_sender_address = readable[0].recvfrom(32768)  # type: bytes
             received_time = timeit.default_timer()  # type: float
 
         return data, received_time
@@ -315,22 +326,7 @@ class Client(object):
     _model_callback = attr.ib(None)
 
     @classmethod
-    def connect(cls, server, logger=Logger()):
-        """Connect to a NatNet server.
-
-        Args:
-            server (str): IPv4 address of server (hostname probably works too)
-            logger (:class:`~logging.Logger`):
-        """
-        logger.info('Connecting to %s', server)
-        conn = Connection.open(server)
-
-        logger.debug('Getting server info')
-        conn.send_message(protocol.ConnectMessage())
-        server_info, received_time = conn.wait_for_message_with_id(protocol.MessageId.ServerInfo)
-        logger.debug('Server application: %s', server_info.app_name)
-        logger.debug('Server version: %s', server_info.app_version)
-        assert server_info.connection_info.multicast
+    def _setup_client(cls, conn, server_info, logger):
         conn.bind_data_socket(server_info.connection_info.multicast_address,
                               server_info.connection_info.data_port)
 
@@ -346,6 +342,63 @@ class Client(object):
 
         logger.info('Ready')
         return inst
+
+    @classmethod
+    def _discover_and_connect(cls, logger):
+        logger.info('Discovering servers')
+        conn = Connection.open('<broadcast>')
+        conn.send_message(protocol.DiscoveryMessage())
+
+        servers = []
+        while True:
+            info, _ = conn.wait_for_message(timeout=1)
+            if info is None:
+                # Timeout
+                break
+            address = conn.last_sender_address
+            logger.info('Found server %s', address)
+            logger.debug('Server application: %s', info.app_name)
+            logger.debug('Server version: %s', info.app_version)
+            assert info.connection_info.multicast
+            servers.append((address, info))
+        if not servers:
+            logger.fatal('No servers found')
+            return None
+        if len(servers) > 1:
+            logger.fatal('Multiple servers found, choose one manually')
+            return None
+
+        server_address, server_info = servers[0]
+        conn.set_server_address(*server_address)
+        return cls._setup_client(conn, server_info, logger)
+
+    @classmethod
+    def _simple_connect(cls, server, logger):
+        logger.info('Connecting to %s', server)
+        conn = Connection.open(server)
+
+        logger.debug('Getting server info')
+        conn.send_message(protocol.ConnectMessage())
+        server_info, received_time = conn.wait_for_message_with_id(protocol.MessageId.ServerInfo)
+        logger.debug('Server application: %s', server_info.app_name)
+        logger.debug('Server version: %s', server_info.app_version)
+        assert server_info.connection_info.multicast
+
+        return cls._setup_client(conn, server_info, logger)
+
+    @classmethod
+    def connect(cls, server=None, logger=Logger()):
+        """Connect to a NatNet server.
+
+        Args:
+            server (str): IPv4 address of server (hostname probably works too), or None to
+                autodiscover
+            logger (:class:`~logging.Logger`):
+        """
+        if server is None:
+            return cls._discover_and_connect(logger)
+        else:
+            return cls._simple_connect(server, logger)
 
     def set_callback(self, callback):
         """Set the frame callback.
