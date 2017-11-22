@@ -38,7 +38,10 @@ Features:
 * Synchronizes clocks with the server to calculate correct frame timestamps
 * Free software: BSD 3-Clause License
 
-See also: `mje-nz/natnet_ros <https://github.com/mje-nz/natnet_ros>`_, a ROS driver based on this library.
+See also:
+
+* `mje-nz/natnet_ros <https://github.com/mje-nz/natnet_ros>`_, a ROS driver based on this library.
+* `mje-nz/natnet-sdk-mirror <https://github.com/mje-nz/natnet-sdk-mirror>`_, a versioned mirror of NaturalPoint's NatNet SDK.
 
 
 Documentation
