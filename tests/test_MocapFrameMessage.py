@@ -42,6 +42,9 @@ def test_parse_mocapframe_packet_v3():
     assert not marker0.occluded
     assert marker0.point_cloud_solved
     assert not marker0.model_solved
+    assert marker0.has_model
+    assert not marker0.unlabelled
+    assert not marker0.active
     assert marker0.residual == pytest.approx(0.0002074828)
     # Assume markers 1-4 are correct if 0 and 5 are
     marker5 = frame.labelled_markers[5]
@@ -50,9 +53,12 @@ def test_parse_mocapframe_packet_v3():
     assert marker5.position == pytest.approx((0.1708117, 1.5076591, -0.8402346))
     assert marker5.size == pytest.approx(0.02015734)
     assert marker5._params == 18
-    assert not marker0.occluded
-    assert marker0.point_cloud_solved
-    assert not marker0.model_solved
+    assert not marker5.occluded
+    assert marker5.point_cloud_solved
+    assert not marker5.model_solved
+    assert not marker5.has_model
+    assert marker5.unlabelled
+    assert not marker5.active
     assert marker5.residual == pytest.approx(0.0005593782)
 
     assert len(frame.force_plates) == 0
