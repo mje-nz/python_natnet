@@ -297,8 +297,6 @@ class MocapFrameMessage(object):
     Attributes:
         frame_number (int):
         markersets (list of :class:`Markerset`):
-        unlabelled_markers (list[tuple[float, float, float]]): Position of each tracked marker,
-            whether part of a rigid body or not (deprecated)
         rigid_bodies (list of :class:`RigidBody`):
         skeletons (list of :class:`Skeleton`):
         labelled_markers (list of :class:`LabelledMarker`): A LabelledMarker instance for each
@@ -310,7 +308,6 @@ class MocapFrameMessage(object):
 
     frame_number = attr.ib()
     markersets = attr.ib()  # type: list[Markerset]
-    unlabelled_markers = attr.ib()
     rigid_bodies = attr.ib()  # type: list[RigidBody]
     skeletons = attr.ib()  # type: list[Skeleton]
     labelled_markers = attr.ib()  # type: list[LabelledMarker]
@@ -324,8 +321,8 @@ class MocapFrameMessage(object):
         """Deserialize a FrameOfData message.
 
         Args:
-            data (:class:`~common.ParseBuffer`):
-            version (:class:`~common.Version`):
+            data (:class:`~natnet.protocol.common.ParseBuffer`):
+            version (:class:`~natnet.protocol.common.Version`):
 
         Returns:
             MocapFrameMessage: Deserialized message
@@ -337,7 +334,7 @@ class MocapFrameMessage(object):
         markersets = [Markerset.deserialize(data, version) for i in range(markerset_count)]
 
         unlabelled_markers_count = data.unpack(uint32_t)
-        unlabelled_markers = [data.unpack(vector3_t) for i in range(unlabelled_markers_count)]
+        data.skip(vector3_t, unlabelled_markers_count)
 
         rigid_body_count = data.unpack(uint32_t)
         rigid_bodies = [RigidBody.deserialize(data, version) for i in range(rigid_body_count)]
@@ -373,7 +370,7 @@ class MocapFrameMessage(object):
         # No idea what this is, but this is how long packets are
         unknown = data.unpack(uint32_t)  # noqa: F841
 
-        return cls(frame_number, markersets, unlabelled_markers, rigid_bodies, skeletons, labelled_markers,
+        return cls(frame_number, markersets, rigid_bodies, skeletons, labelled_markers,
                    force_plates, devices, timing_info, params)
 
     @property

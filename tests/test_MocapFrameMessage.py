@@ -17,11 +17,6 @@ def test_parse_mocapframe_packet_v3():
     assert frame.frame_number == 162734
     assert len(frame.markersets) == 0
 
-    assert len(frame.unlabelled_markers) == 5
-    # Assume markers 1-3 are correct if 0 and 4 are
-    assert frame.unlabelled_markers[0] == pytest.approx((0.1272162, 1.5050275, -0.8858284))
-    assert frame.unlabelled_markers[4] == pytest.approx((0.3213989, 1.4146513, -0.7529538))
-
     assert len(frame.rigid_bodies) == 1
     body = frame.rigid_bodies[0]
     assert body.id_ == 2
