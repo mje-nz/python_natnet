@@ -102,6 +102,11 @@ class RigidBody(object):
 
         return cls(id_, position, orientation, mean_error, params)
 
+    def serialize(self):
+        return uint32_t.pack(self.id_) + vector3_t.pack(*self.position) + \
+               quaternion_t.pack(*self.orientation) + float_t.pack(self.mean_error) + \
+               int16_t.pack(self._params)
+
     @property
     def tracking_valid(self):
         """True if rigid body is being tracked successfully."""
@@ -159,8 +164,6 @@ class LabelledMarker(object):
     @classmethod
     def deserialize(cls, data, version):
         """Deserialize a LabelledMarker from a ParseBuffer."""
-        # In the SDK direct depacketization samples these are lumped together as one int32_t, but
-        # this is what it decodes to.
         marker_id = data.unpack(uint16_t)
         model_id = data.unpack(uint16_t)
 
@@ -177,6 +180,11 @@ class LabelledMarker(object):
             residual = data.unpack(float_t)
 
         return cls(model_id, marker_id, position, size, params, residual)
+
+    def serialize(self):
+        return uint16_t.pack(self.marker_id) + uint16_t.pack(self.model_id) + \
+               vector3_t.pack(*self.position) + float_t.pack(self.size) + \
+               int16_t.pack(self._params) + float_t.pack(self.residual)
 
     @property
     def occluded(self):
@@ -287,6 +295,12 @@ class TimingInfo(object):
         return cls(timecode, timecode_subframe, timestamp, camera_mid_exposure_timestamp,
                    camera_data_received_timestamp, transmit_timestamp)
 
+    def serialize(self):
+        return uint32_t.pack(self.timecode) + uint32_t.pack(self.timecode_subframe) + \
+            double_t.pack(self.timestamp) + uint64_t.pack(self.camera_mid_exposure_timestamp) + \
+            uint64_t.pack(self.camera_data_received_timestamp) + \
+            uint64_t.pack(self.transmit_timestamp)
+
 
 @register_message(MessageId.FrameOfData)
 @attr.s
@@ -372,6 +386,32 @@ class MocapFrameMessage(object):
 
         return cls(frame_number, markersets, rigid_bodies, skeletons, labelled_markers,
                    force_plates, devices, timing_info, params)
+
+    def serialize(self, include_unlabelled=False):
+        frame_number = uint32_t.pack(self.frame_number)
+        markersets = uint32_t.pack(len(self.markersets)) + \
+            b''.join(m.serialize() for m in self.markersets)
+        unlabelled_markers = uint32_t.pack(0)
+        if include_unlabelled:
+            # Hack to match recorded packet in tests
+            positions = [l.position for l in self.labelled_markers if l.model_id != 0]
+            unlabelled_markers = uint32_t.pack(len(positions)) + \
+                b''.join(vector3_t.pack(*p) for p in positions)
+        rigid_bodies = uint32_t.pack(len(self.rigid_bodies)) + \
+            b''.join(r.serialize() for r in self.rigid_bodies)
+        skeletons = uint32_t.pack(len(self.skeletons)) + \
+            b''.join(s.serialize() for s in self.skeletons)
+        labelled_markers = uint32_t.pack(len(self.labelled_markers)) + \
+            b''.join(l.serialize() for l in self.labelled_markers)
+        force_plates = uint32_t.pack(len(self.force_plates)) + \
+            b''.join(f.serialize() for f in self.force_plates)
+        devices = uint32_t.pack(len(self.devices)) + \
+            b''.join(d.serialize() for d in self.devices)
+        timing_info = self.timing_info.serialize()
+        params = uint16_t.pack(self._params)
+        unknown = uint32_t.pack(0)
+        return frame_number + markersets + unlabelled_markers + rigid_bodies + skeletons + \
+            labelled_markers + force_plates + devices + timing_info + params + unknown
 
     @property
     def is_recording(self):

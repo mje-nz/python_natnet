@@ -18,19 +18,18 @@ class ConnectionInfo(object):
 
     data_port = attr.ib()  # type: int
     multicast = attr.ib()  # type: bool
-    _multicast_address = attr.ib()  # type: bytes
+    multicast_address = attr.ib()  # type: bytes
 
     @classmethod
     def deserialize(cls, data, version):
         data_port = data.unpack(uint16_t)
         multicast = data.unpack(bool_t)
-        multicast_address = data.unpack_bytes(4)
+        multicast_address = socket.inet_ntoa(data.unpack_bytes(4))
         return cls(data_port, multicast, multicast_address)
 
-    @property
-    def multicast_address(self):
-        """Return the multicast address as a string."""
-        return socket.inet_ntoa(self._multicast_address)
+    def serialize(self):
+        multicast_address = socket.inet_aton(self.multicast_address)
+        return uint16_t.pack(self.data_port) + bool_t.pack(self.multicast) + multicast_address
 
 
 @register_message(MessageId.ServerInfo)
@@ -60,4 +59,11 @@ class ServerInfoMessage(object):
             high_resolution_clock_frequency = data.unpack(uint64_t)
             connection_info = ConnectionInfo.deserialize(data, version)
 
-        return cls(app_name, app_version, natnet_version, high_resolution_clock_frequency, connection_info)
+        return cls(app_name, app_version, natnet_version, high_resolution_clock_frequency,
+                   connection_info)
+
+    def serialize(self):
+        app_name = self.app_name.encode('utf-8')
+        app_name += b'\0'*(256 - len(app_name))
+        return app_name + self.app_version.serialize() + self.natnet_version.serialize() + \
+            uint64_t.pack(self.high_resolution_clock_frequency) + self.connection_info.serialize()

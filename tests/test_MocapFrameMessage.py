@@ -2,9 +2,9 @@
 
 import pytest
 
-from natnet.protocol import MocapFrameMessage, Version, deserialize  # noqa: F401
+from natnet.protocol import MocapFrameMessage, Version, deserialize, serialize
 from natnet.protocol.common import ParseBuffer
-from natnet.protocol.MocapFrameMessage import LabelledMarker, Markerset  # noqa: F401
+from natnet.protocol.MocapFrameMessage import LabelledMarker, Markerset, RigidBody, TimingInfo
 
 
 def test_parse_mocapframe_packet_v3():
@@ -69,6 +69,67 @@ def test_parse_mocapframe_packet_v3():
     assert frame._params == 0
     assert not frame.is_recording
     assert not frame.tracked_models_changed
+
+
+def test_serialize_mocapframe_message():
+    """Test serializing a MocapFrameMessage."""
+    packet = open('test_data/mocapframe_packet_v3.bin', 'rb').read()
+
+    rigid_body = RigidBody(
+        id_=2, position=(0.17444664239883423, 1.4471313953399658, -0.7343040108680725),
+        orientation=(-0.05459423363208771, 0.509948194026947, 0.04370357096195221, -0.8573576807975769),
+        mean_error=0.0005152203375473619, params=1
+    )
+    markers = [
+        LabelledMarker(
+            model_id=2, marker_id=1,
+            position=(0.12721621990203857, 1.5050275325775146, -0.8858283758163452),
+            size=0.021439820528030396, params=10, residual=0.00020748283714056015),
+        LabelledMarker(
+            model_id=2, marker_id=2,
+            position=(0.20898520946502686, 1.4832806587219238, -0.7121866345405579),
+            size=0.020884789526462555, params=10, residual=0.000539067666977644),
+        LabelledMarker(
+            model_id=2, marker_id=3,
+            position=(-0.04574164003133774, 1.4310429096221924, -0.8313022255897522),
+            size=0.020809074863791466, params=10, residual=0.000689117528963834),
+        LabelledMarker(
+            model_id=2, marker_id=4,
+            position=(0.18133828043937683, 1.4358338117599487, -0.6535942554473877),
+            size=0.019269507378339767, params=10, residual=0.0003837273397948593),
+        LabelledMarker(
+            model_id=2, marker_id=5,
+            position=(0.32139891386032104, 1.4146512746810913, -0.7529537677764893),
+            size=0.021224740892648697, params=10, residual=0.0006357387755997479),
+        LabelledMarker(
+            model_id=0, marker_id=50007,
+            position=(0.17081165313720703, 1.5076590776443481, -0.840234637260437),
+            size=0.0201573446393013, params=18, residual=0.0005593782989308238)
+    ]
+    timing_info = TimingInfo(
+        timecode=0,
+        timecode_subframe=0,
+        timestamp=1356.1166666666666,
+        camera_mid_exposure_timestamp=1416497730518,
+        camera_data_received_timestamp=1416497745808,
+        transmit_timestamp=1416497748722
+    )
+    msg = MocapFrameMessage(
+        frame_number=162734,
+        markersets=[],
+        rigid_bodies=[rigid_body],
+        skeletons=[],
+        labelled_markers=markers,
+        force_plates=[],
+        devices=[],
+        timing_info=timing_info,
+        params=0
+    )
+    old_serialize = msg.serialize
+    msg.serialize = lambda: old_serialize(include_unlabelled=True)
+    serialized_msg = serialize(msg)
+    print(len(serialized_msg), len(packet))
+    assert serialized_msg == packet
 
 
 def test_serialize_and_deserialize_markerset():

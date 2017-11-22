@@ -11,10 +11,13 @@ class Logger(object):
 
     """Dummy logger implementation that just calls print."""
 
-    @staticmethod
-    def _log(msg, *args):
-        """Print msg % args."""
+    def _log_impl(self, msg, *args):
+        """Implementation function to make subclassing work."""
         print(msg % args)
+
+    def _log(self, msg, *args):
+        """Print msg % args."""
+        self._log_impl(msg, *args)
 
     debug = _log
     info = _log

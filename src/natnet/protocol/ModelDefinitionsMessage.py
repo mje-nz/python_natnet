@@ -192,3 +192,6 @@ class ModelDefinitionsMessage(object):
                 raise ValueError('Unknown model definition type {}'.format(model_type))
 
         return cls(models)
+
+    def serialize(self):
+        return uint32_t.pack(len(self.models)) + b''.join(m.serialize() for m in self.models)
