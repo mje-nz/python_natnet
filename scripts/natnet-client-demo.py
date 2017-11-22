@@ -26,6 +26,8 @@ class ClientApp(object):
             client = natnet.fakes.SingleFrameFakeClient.fake_connect(rate=rate)
         else:
             client = natnet.Client.connect(server_name)
+        if client is None:
+            return None
         return cls(client, quiet)
 
     def run(self):
@@ -69,13 +71,17 @@ class ClientApp(object):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--server')
-    parser.add_argument('--rate', type=float, default=10)
+    parser.add_argument('--server', help='Will autodiscover if not supplied')
+    parser.add_argument('--fake', action='store_true',
+                        help='Produce fake data at `rate` instead of connecting to actual server')
+    parser.add_argument('--rate', type=float, default=10,
+                        help='Rate at which to produce fake data (Hz)')
     parser.add_argument('--quiet', action='store_true')
     args = parser.parse_args()
 
-    app = ClientApp.connect(args.server, args.rate, args.quiet)
-    app.run()
+    app = ClientApp.connect('fake' if args.fake else args.server, args.rate, args.quiet)
+    if app:
+        app.run()
 
 
 if __name__ == '__main__':
