@@ -16,25 +16,24 @@ import natnet
 class ClientApp(object):
 
     _client = attr.ib()
-    _timeout = attr.ib()
     _quiet = attr.ib()
 
     _last_printed = attr.ib(0)
 
     @classmethod
-    def connect(cls, server_name, timeout, quiet):
+    def connect(cls, server_name, rate, quiet):
         if server_name == 'fake':
-            client = natnet.fakes.SingleFrameFakeClient.fake_connect()
+            client = natnet.fakes.SingleFrameFakeClient.fake_connect(rate=rate)
         else:
             client = natnet.Client.connect(server_name)
-        return cls(client, timeout, quiet)
+        return cls(client, quiet)
 
     def run(self):
         if self._quiet:
             self._client.set_callback(self.callback_quiet)
         else:
             self._client.set_callback(self.callback)
-        self._client.spin(self._timeout)
+        self._client.spin()
 
     def callback(self, rigid_bodies, markers, timing):
         """
@@ -62,7 +61,7 @@ class ClientApp(object):
             1000*timing.processing_latency
         ))
 
-    def callback_quiet(self, *args):
+    def callback_quiet(self, *_):
         if time.time() - self._last_printed > 1:
             print('.')
             self._last_printed = time.time()
@@ -71,11 +70,11 @@ class ClientApp(object):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--server')
-    parser.add_argument('--timeout', type=float)
+    parser.add_argument('--rate', type=float, default=10)
     parser.add_argument('--quiet', action='store_true')
     args = parser.parse_args()
 
-    app = ClientApp.connect(args.server, args.timeout, args.quiet)
+    app = ClientApp.connect(args.server, args.rate, args.quiet)
     app.run()
 
 
