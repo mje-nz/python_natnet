@@ -15,12 +15,13 @@ __all__ = [
     # Misc
     'MessageId', 'Version',
     # Messages
-    'ConnectMessage', 'EchoRequestMessage', 'EchoResponseMessage', 'MocapFrameMessage',
-    'ModelDefinitionsMessage', 'RequestModelDefinitionsMessage', 'ServerInfoMessage']
+    'ConnectMessage', 'DiscoveryMessage', 'EchoRequestMessage', 'EchoResponseMessage',
+    'MocapFrameMessage', 'ModelDefinitionsMessage', 'RequestModelDefinitionsMessage', 'ServerInfoMessage']
 
 from .common import (MessageId, Version, deserialize, deserialize_header, deserialize_payload,
                      serialize)
 from .ConnectMessage import ConnectMessage
+from .DiscoveryMessage import DiscoveryMessage
 from .EchoRequestMessage import EchoRequestMessage
 from .EchoResponseMessage import EchoResponseMessage
 from .MocapFrameMessage import MocapFrameMessage
