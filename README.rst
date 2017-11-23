@@ -4,27 +4,19 @@ Overview
 
 .. start-badges
 
-.. list-table::
-    :stub-columns: 1
-
-    * - docs
-      - |docs|
-    * - tests
-      - | |travis| |appveyor| |codecov|
-
-.. |docs| image:: https://readthedocs.org/projects/python-natnet/badge/?style=flat
-    :target: https://readthedocs.org/projects/python-natnet
-    :alt: Documentation Status
-
-.. |travis| image:: https://travis-ci.org/mje-nz/python_natnet.svg?branch=master
+.. image:: https://travis-ci.org/mje-nz/python_natnet.svg?branch=master
     :alt: Travis-CI Build Status
     :target: https://travis-ci.org/mje-nz/python_natnet
 
-.. |appveyor| image:: https://ci.appveyor.com/api/projects/status/github/mje-nz/python_natnet?branch=master&svg=true
+.. image:: https://ci.appveyor.com/api/projects/status/github/mje-nz/python_natnet?branch=master&svg=true
     :alt: AppVeyor Build Status
-    :target: https://ci.appveyor.com/project/mje-nz/python_natnet
+    :target: https://ci.appveyor.com/project/mje-nz/python-natnet-pwcxn
 
-.. |codecov| image:: https://codecov.io/github/mje-nz/python_natnet/coverage.svg?branch=master
+.. image:: https://readthedocs.org/projects/python-natnet/badge/?style=flat
+    :target: https://readthedocs.org/projects/python-natnet
+    :alt: Documentation Status
+
+.. image:: https://codecov.io/github/mje-nz/python_natnet/coverage.svg?branch=master
     :alt: Coverage Status
     :target: https://codecov.io/github/mje-nz/python_natnet
 
