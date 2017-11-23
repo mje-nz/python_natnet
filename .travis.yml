@@ -5,40 +5,34 @@ env:
   global:
     - LD_PRELOAD=/lib/x86_64-linux-gnu/libSegFault.so
     - SEGFAULT_SIGNALS=all
-  matrix:
-    - TOXENV=docs
+    - TOXENV=py,report
+python:
+  - 2.7
+  - 3.4
+  - 3.5
+  - 3.6
 matrix:
   include:
-    - python: '2.7'
-      env:
-        - TOXENV=check-py27
-    - python: '3.6'
-      env:
-        - TOXENV=check-py36
-    - python: '2.7'
-      env:
-        - TOXENV=py27,report,codecov
-    - python: '3.4'
-      env:
-        - TOXENV=py34,report,codecov
-    - python: '3.5'
-      env:
-        - TOXENV=py35,report,codecov
-    - python: '3.6'
-      env:
-        - TOXENV=py36,report,codecov
+    - env: TOXENV=py27,report  # Specifically use py27 env to get custom deps
+      python: 2.7
+    - env: TOXENV=py27-check
+    - python: 3.6
+      env: TOXENV=py36-check
+    - env: TOXENV=docs
 before_install:
   - python --version
   - uname -a
   - lsb_release -a
 install:
-  - pip install tox
+  - pip install tox codecov
   - virtualenv --version
   - easy_install --version
   - pip --version
   - tox --version
 script:
   - tox -v
+after_success:
+  - codecov
 after_failure:
   - more .tox/log/* | cat
   - more .tox/*/log/* | cat

@@ -9,7 +9,7 @@ fi
 
 printf "Running tox... "
 
-output=$(tox -e check-py27,check-py36,py36-nocov)
+output=$(tox -e py27-check,py36-check,py36-nocov)
 ret=$?
 
 if [ $ret -eq 0 ]; then

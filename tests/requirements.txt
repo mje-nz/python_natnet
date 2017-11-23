@@ -1,0 +1,7 @@
+mock
+multiprocess
+pytest
+pytest-benchmark
+pytest-timeout
+pytest-travis-fold
+pytest-cov
