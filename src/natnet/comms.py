@@ -309,6 +309,10 @@ class TimestampAndLatency(object):
         return self.system_latency + self.transit_latency + self.processing_latency
 
 
+class DiscoveryError(EnvironmentError):
+    pass
+
+
 @attr.s
 class Client(object):
 
@@ -344,14 +348,14 @@ class Client(object):
         return inst
 
     @classmethod
-    def _discover_and_connect(cls, logger):
+    def _discover_and_connect(cls, logger, timeout=None):
         logger.info('Discovering servers')
         conn = Connection.open('<broadcast>')
         conn.send_message(protocol.DiscoveryMessage())
 
         servers = []
         while True:
-            info, _ = conn.wait_for_message(timeout=1)
+            info, _ = conn.wait_for_message(timeout=timeout)
             if info is None:
                 # Timeout
                 break
@@ -361,25 +365,25 @@ class Client(object):
             logger.debug('Server version: %s', info.app_version)
             assert info.connection_info.multicast
             servers.append((address, info))
+
         if not servers:
-            logger.fatal('No servers found')
-            return None
+            raise DiscoveryError('No servers found')
         if len(servers) > 1:
-            logger.fatal('Multiple servers found, choose one manually')
-            return None
+            raise DiscoveryError('Multiple servers found, choose one manually')
 
         server_address, server_info = servers[0]
         conn.set_server_address(*server_address)
         return cls._setup_client(conn, server_info, logger)
 
     @classmethod
-    def _simple_connect(cls, server, logger):
+    def _simple_connect(cls, server, logger, timeout=None):
         logger.info('Connecting to %s', server)
         conn = Connection.open(server)
 
         logger.debug('Getting server info')
         conn.send_message(protocol.ConnectMessage())
-        server_info, received_time = conn.wait_for_message_with_id(protocol.MessageId.ServerInfo)
+        server_info, received_time = conn.wait_for_message_with_id(protocol.MessageId.ServerInfo,
+                                                                   timeout=timeout)
         logger.debug('Server application: %s', server_info.app_name)
         logger.debug('Server version: %s', server_info.app_version)
         assert server_info.connection_info.multicast
@@ -387,18 +391,21 @@ class Client(object):
         return cls._setup_client(conn, server_info, logger)
 
     @classmethod
-    def connect(cls, server=None, logger=Logger()):
+    def connect(cls, server=None, logger=Logger(), timeout=1):
         """Connect to a NatNet server.
+
+        Raises :class:`DiscoveryError` if `server` is not provided and discovery fails.
 
         Args:
             server (str): IPv4 address of server (hostname probably works too), or None to
                 autodiscover
             logger (:class:`~logging.Logger`):
+            timeout (int): How long to wait for server(s) to respond
         """
         if server is None:
-            return cls._discover_and_connect(logger)
+            return cls._discover_and_connect(logger, timeout)
         else:
-            return cls._simple_connect(server, logger)
+            return cls._simple_connect(server, logger, timeout)
 
     def set_callback(self, callback):
         """Set the frame callback.

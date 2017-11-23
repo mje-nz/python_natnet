@@ -79,9 +79,11 @@ def main():
     parser.add_argument('--quiet', action='store_true')
     args = parser.parse_args()
 
-    app = ClientApp.connect('fake' if args.fake else args.server, args.rate, args.quiet)
-    if app:
+    try:
+        app = ClientApp.connect('fake' if args.fake else args.server, args.rate, args.quiet)
         app.run()
+    except natnet.DiscoveryError as e:
+        print('Error:', e)
 
 
 if __name__ == '__main__':
