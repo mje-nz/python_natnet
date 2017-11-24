@@ -19,6 +19,7 @@ include .cookiecutterrc
 include .editorconfig
 include tox.ini
 
+exclude .codecov.yml
 exclude .travis.yml
 exclude appveyor.yml
 
