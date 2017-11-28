@@ -1,6 +1,14 @@
 # coding: utf-8
+"""FrameOfData message implementation.
 
-"""This is the most complicated message.
+Copyright (c) 2017, Matthew Edwards.  This file is subject to the 3-clause BSD
+license, as found in the LICENSE file in the top-level directory of this
+distribution and at https://github.com/mje-nz/python_natnet/blob/master/LICENSE.
+No part of python_natnet, including this file, may be copied, modified,
+propagated, or distributed except according to the terms contained in the
+LICENSE file.
+
+This is the most complicated message.
 
 All positions are given as (x, y, z) tuples of floats, in meters, in whatever co-ordinate frame
 Motive is using (Y-up or Z-up depending on the streaming settings).  All orientations are given in
