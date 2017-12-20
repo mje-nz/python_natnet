@@ -2,7 +2,7 @@
 
 import pytest
 
-from natnet.protocol import ModelDefinitionsMessage, Version, deserialize  # noqa: F401
+from natnet.protocol import ModelDefinitionsMessage, Version, deserialize, serialize  # noqa: F401
 from natnet.protocol.ModelDefinitionsMessage import MarkersetDescription, RigidBodyDescription
 
 
@@ -40,3 +40,37 @@ def test_parse_modeldef_packet_v3():
     assert ms2.name == 'all'
     assert ms2.marker_names == ['RaceQuad_1', 'RaceQuad_2', 'RaceQuad_3', 'RaceQuad_4',
                                 'RaceQuad_5']
+
+
+def test_serialize_modeldef_message():
+    """Test serializing a ModelDefinitionsMessage."""
+    packet = open('test_data/modeldef_packet_v3.bin', 'rb').read()
+
+    msg = ModelDefinitionsMessage(
+        models=[
+            RigidBodyDescription(
+                name='RaceQuad',
+                id_=2,
+                parent_id=-1,
+                offset_from_parent=(0.0, 0.0, 0.0),
+                marker_positions=[
+                    (0.1611589938402176, 0.03505159914493561, -0.03218130022287369),
+                    (-0.0308190006762743, 0.03978189826011658, -0.021990099921822548),
+                    (0.1875309944152832, -0.03338329866528511, 0.1480810046195984),
+                    (-0.0748715028166771, 6.686070264549926e-05, 0.03292329981923103),
+                    (-0.05803820118308067, -0.03194189816713333, -0.13680699467658997)],
+                required_active_labels=[0, 0, 0, 0, 0]
+            ),
+            MarkersetDescription(
+                name='RaceQuad',
+                marker_names=['Marker1', 'Marker2', 'Marker3', 'Marker4', 'Marker5']
+            ),
+            MarkersetDescription(
+                name='all',
+                marker_names=['RaceQuad_1', 'RaceQuad_2', 'RaceQuad_3', 'RaceQuad_4', 'RaceQuad_5']
+            )
+        ]
+    )
+    serialized_msg = serialize(msg)
+    print(len(serialized_msg), len(packet))
+    assert serialized_msg == packet

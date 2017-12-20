@@ -26,9 +26,47 @@ import enum
 
 import attr
 
-from .common import MessageId, Version, int32_t, register_message, uint32_t, vector3_t
+from .common import (MessageId, SerDesRegistry, Version, int32_t, register_message, uint32_t,
+                     vector3_t)
 
 
+class ModelType(enum.IntEnum):
+    MarkerSet = 0
+    RigidBody = 1
+    Skeleton = 2
+    # I assume:
+    ForcePlate = 3
+    Device = 4
+
+
+class ModelRegistry(SerDesRegistry):
+    """Abuse SerDesRegistry a bit to use for model types."""
+
+    @staticmethod
+    def serialize(model):
+        model_type = model.message_id
+        payload = model.serialize()
+        return uint32_t.pack(model_type) + payload
+
+    def deserialize_header(*args, **kwargs):
+        raise NotImplementedError()
+
+    def deserialize_payload(*args, **kwargs):
+        raise NotImplementedError()
+
+    def deserialize(self, data, version=None, strict=None):
+        model_type = data.unpack(uint32_t)
+        try:
+            impl = self._implementation_types[model_type]
+        except KeyError:
+            raise ValueError('Unknown model definition type {}'.format(model_type))
+        return impl.deserialize(data, version)
+
+
+_registry = ModelRegistry()
+
+
+@_registry.register_message(ModelType.MarkerSet)
 @attr.s
 class MarkersetDescription(object):
 
@@ -49,7 +87,12 @@ class MarkersetDescription(object):
         marker_names = [data.unpack_cstr() for i in range(marker_count)]
         return cls(name, marker_names)
 
+    def serialize(self):
+        return self.name.encode('utf-8') + b'\0' + uint32_t.pack(len(self.marker_names)) + \
+               b''.join(m.encode('utf-8') + b'\0' for m in self.marker_names)
 
+
+@_registry.register_message(ModelType.RigidBody)
 @attr.s
 class RigidBodyDescription(object):
 
@@ -78,7 +121,7 @@ class RigidBodyDescription(object):
         if version >= Version(2):
             name = data.unpack_cstr()
 
-        id_ = data.unpack(uint32_t)
+        id_ = data.unpack(int32_t)
         parent_id = data.unpack(int32_t)
         offset_from_parent = data.unpack(vector3_t)
 
@@ -96,7 +139,15 @@ class RigidBodyDescription(object):
 
         return cls(name, id_, parent_id, offset_from_parent, marker_positions, required_active_labels)
 
+    def serialize(self):
+        return self.name.encode('utf-8') + b'\0' + int32_t.pack(self.id_) + \
+               int32_t.pack(self.parent_id) + vector3_t.pack(*self.offset_from_parent) + \
+               uint32_t.pack(len(self.marker_positions)) + \
+               b''.join(vector3_t.pack(*m) for m in self.marker_positions) + \
+               b''.join(uint32_t.pack(l) for l in self.required_active_labels)
 
+
+@_registry.register_message(ModelType.Skeleton)
 @attr.s
 class SkeletonDescription(object):
 
@@ -122,6 +173,7 @@ class SkeletonDescription(object):
         return cls(name, id_, rigid_bodies)
 
 
+@_registry.register_message(ModelType.ForcePlate)
 @attr.s
 class ForcePlateDescription(object):
 
@@ -142,6 +194,7 @@ class ForcePlateDescription(object):
         raise NotImplementedError
 
 
+@_registry.register_message(ModelType.Device)
 @attr.s
 class DeviceDescription(object):
 
@@ -155,16 +208,6 @@ class DeviceDescription(object):
     @classmethod
     def deserialize(cls, data, version=None):
         raise NotImplementedError
-
-
-class ModelType(enum.IntEnum):
-
-    MarkerSet = 0
-    RigidBody = 1
-    Skeleton = 2
-    # I assume:
-    ForcePlate = 3
-    Device = 4
 
 
 @register_message(MessageId.ModelDef)
@@ -185,21 +228,9 @@ class ModelDefinitionsMessage(object):
 
         definition_count = data.unpack(uint32_t)
         for i in range(definition_count):
-            model_type = data.unpack(uint32_t)
-            if model_type == ModelType.MarkerSet:
-                models.append(MarkersetDescription.deserialize(data, version))
-            elif model_type == ModelType.RigidBody:
-                models.append(RigidBodyDescription.deserialize(data, version))
-            elif model_type == ModelType.Skeleton:
-                models.append(SkeletonDescription.deserialize(data, version))
-            elif model_type == ModelType.ForcePlate:
-                models.append(ForcePlateDescription.deserialize(data, version))
-            elif model_type == ModelType.Device:
-                models.append(DeviceDescription.deserialize(data, version))
-            else:
-                raise ValueError('Unknown model definition type {}'.format(model_type))
+            models.append(_registry.deserialize(data, version))
 
         return cls(models)
 
     def serialize(self):
-        return uint32_t.pack(len(self.models)) + b''.join(m.serialize() for m in self.models)
+        return uint32_t.pack(len(self.models)) + b''.join(_registry.serialize(m) for m in self.models)
