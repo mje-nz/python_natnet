@@ -194,41 +194,48 @@ class LabelledMarker(object):
                vector3_t.pack(*self.position) + float_t.pack(self.size) + \
                int16_t.pack(self._params) + float_t.pack(self.residual)
 
+    _OCCLUDED = 0x01
+    _POINT_CLOUD_SOLVED = 0x02
+    _MODEL_SOLVED = 0x04
+    _HAS_MODEL = 0x08
+    _UNLABELLED = 0x10
+    _ACTIVE = 0x20
+
     @property
     def occluded(self):
         """True if the marker is occluded."""
         assert self._params is not None
-        return (self._params & 0x01) != 0
+        return (self._params & self._OCCLUDED) != 0
 
     @property
     def point_cloud_solved(self):
         """True if the marker is "point cloud solved" i.e. its position was calculated directly."""
         assert self._params is not None
-        return (self._params & 0x02) != 0
+        return (self._params & self._POINT_CLOUD_SOLVED) != 0
 
     @property
     def model_solved(self):
         """True if the marker is "model solved" i.e. its position was calculated from a rigid body."""
         assert self._params is not None
-        return (self._params & 0x04) != 0
+        return (self._params & self._MODEL_SOLVED) != 0
 
     @property
     def has_model(self):
         """True if the marker has an associated asset (e.g. rigid body)."""
         assert self._params is not None
-        return (self._params & 0x08) != 0
+        return (self._params & self._HAS_MODEL) != 0
 
     @property
     def unlabelled(self):
         """True if the marker is 'unlabelled' i.e. does not have an associated asset."""
         assert self._params is not None
-        return (self._params & 0x10) != 0
+        return (self._params & self._UNLABELLED) != 0
 
     @property
     def active(self):
         """True if the marker is an actively labeled LED marker."""
         assert self._params is not None
-        return (self._params & 0x20) != 0
+        return (self._params & self._ACTIVE) != 0
 
 
 @attr.s
