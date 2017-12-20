@@ -21,6 +21,7 @@ import attr
 
 from . import protocol
 from .logging import Logger
+from .protocol.MocapFrameMessage import LabelledMarker
 from .protocol.ModelDefinitionsMessage import (MarkersetDescription, RigidBodyDescription,
                                                SkeletonDescription)
 
@@ -333,6 +334,8 @@ class Client(object):
     _clock_synchronizer = attr.ib()  # type: ClockSynchronizer
     _log = attr.ib()  # type: Logger
     _model_definitions = attr.ib(attr.Factory(list))  # type: list
+    _expected_markers = attr.ib(attr.Factory(set))  # type: set
+    _model_names = attr.ib(attr.Factory(dict))  # type: dict[int, str]
     _callback = attr.ib(None)
     _model_callback = attr.ib(None)
 
@@ -442,6 +445,70 @@ class Client(object):
         self._model_callback = callback
         self._call_model_callback()
 
+    def _do_occlusion_workaround(self, labelled_markers, markersets):
+        """Work around strange "solver replaces occlusion" behaviour in Motive 2.0.
+
+        "Solver replaces occlusion" does not do what you would expect.  When a marker is occluded,
+        rather than streaming it with occluded=True and modelSolved=True, it is not streamed as a
+        labelled marker at all.  Rather, "Solver replaces occlusion" enables streaming markersets,
+        which are lists of all the markers in each rigid body as (effectively) unlabelled markers.
+        To detect an occluded marker, we have to check if there are any markers missing in each
+        rigid body and then find them in the markerset.  For sanity purposes, we hide this detail
+        and make it look like they did the sensible thing.
+        """
+        # First, clear the occluded flag if it's set, as I couldn't get a straight answer about
+        # what it actually means (and it clearly doesn't mean "occluded")
+        for l in labelled_markers:
+            l._params &= ~LabelledMarker._OCCLUDED
+
+        # Fill in missing markers
+        markers = set((l.model_id, l.marker_id) for l in labelled_markers)
+        missing_markers = self._expected_markers - markers
+        if missing_markers:
+            for model_id, marker_id in missing_markers:
+                # Get model-solved position from markerset
+                try:
+                    model_name = self._model_names[model_id]
+                    markerset_candidates = [m for m in markersets if m.name == model_name]
+                    assert len(markerset_candidates) == 1
+                    markerset = markerset_candidates[0]
+                    position = markerset.markers[marker_id - 1]
+                except (KeyError, AssertionError):
+                    self._log.warning('Tried to recreate occluded marker %i for unknown model %i',
+                                      marker_id, model_id)
+                    print(self._model_names)
+                    continue
+                # Construct labelled marker
+                params = LabelledMarker._OCCLUDED | LabelledMarker._MODEL_SOLVED | \
+                    LabelledMarker._HAS_MODEL
+                reconstructed_marker = LabelledMarker(
+                    model_id=model_id, marker_id=marker_id, position=position,
+                    size=0.1,  # Arbitrary small size
+                    params=params,
+                    residual=1  # Arbitrary large residual
+                )
+                labelled_markers.append(reconstructed_marker)
+            labelled_markers.sort(key=lambda lm: (lm.model_id, lm.marker_id))
+
+    def _handle_frame(self, frame_message, received_time):
+        rigid_bodies = frame_message.rigid_bodies
+        labelled_markers = frame_message.labelled_markers
+        markersets = frame_message.markersets
+
+        if labelled_markers and markersets:
+            # Labelled markers and "solver replaces occlusion" are both on, so we can fill in the
+            # missing labelled markers from the corresponding markerset
+            self._do_occlusion_workaround(labelled_markers, markersets)
+
+        timestamp_and_latency = TimestampAndLatency._calculate(
+            received_time, frame_message.timing_info, self._clock_synchronizer)
+        self._callback(rigid_bodies, labelled_markers, timestamp_and_latency)
+
+        if frame_message.tracked_models_changed:
+            self._log.info('Tracked models have changed, requesting new model definitions')
+            self._conn.send_packet(protocol.serialize(
+                protocol.RequestModelDefinitionsMessage()))
+
     def _handle_model_definitions(self, model_definitions_message):
         """Update local list of rigid body id:name mappings.
 
@@ -449,10 +516,19 @@ class Client(object):
         """
         self._model_definitions = model_definitions_message.models
 
+        rigid_bodies = [m for m in self._model_definitions if type(m) is RigidBodyDescription]
+        self._expected_markers = set((r.id_, i + 1) for r in rigid_bodies
+                                     for i in range(len(r.marker_positions)))
+        self._model_names = {}
+        for m in self._model_definitions:
+            try:
+                self._model_names[m.id_] = m.name
+            except AttributeError:
+                pass
+
         # TODO: Figure out what to do when there are duplicate streaming IDs
 
         # Sanity check
-        rigid_bodies = [m for m in self._model_definitions if type(m) is RigidBodyDescription]
         rigid_body_ids = set(m.id_ for m in rigid_bodies)
         if len(rigid_body_ids) != len(rigid_bodies):
             names = collections.defaultdict(list)
@@ -472,17 +548,8 @@ class Client(object):
             return
         if message_id == protocol.MessageId.FrameOfData:
             if self._callback:
-                frame = protocol.deserialize_payload(message_id, payload)
-                rigid_bodies = frame.rigid_bodies
-                labelled_markers = frame.labelled_markers
-                timestamp_and_latency = TimestampAndLatency._calculate(
-                    received_time, frame.timing_info, self._clock_synchronizer)
-                self._callback(rigid_bodies, labelled_markers, timestamp_and_latency)
-
-                if frame.tracked_models_changed:
-                    self._log.info('Tracked models have changed, requesting new model definitions')
-                    self._conn.send_packet(protocol.serialize(
-                        protocol.RequestModelDefinitionsMessage()))
+                frame_message = protocol.deserialize_payload(message_id, payload)
+                self._handle_frame(frame_message, received_time)
         elif message_id == protocol.MessageId.ModelDef:
             model_definitions_message = protocol.deserialize_payload(message_id, payload)
             self._handle_model_definitions(model_definitions_message)

@@ -5,6 +5,7 @@ import pytest
 
 import natnet
 from natnet.fakes import FakeClockSynchronizer, FakeConnection
+from natnet.protocol.ModelDefinitionsMessage import ModelDefinitionsMessage, RigidBodyDescription
 
 
 @pytest.fixture(scope='module', autouse=True)
@@ -86,6 +87,51 @@ def test_client_calls_callback_for_mocapframe(client_with_fakes, test_packets, t
     assert timing.transit_latency == 0
     assert timing.processing_latency == 0
     assert timing.latency == pytest.approx(0.005495071)
+
+
+def test_client_fills_in_occluded_markers(client_with_fakes):
+    client = client_with_fakes
+
+    # Oops, forgot to save model definitions when I captured this frame, better make something up
+    body_def = RigidBodyDescription(
+        name='FakeTree', id_=7, parent_id=-1, offset_from_parent=(0.0, 0.0, 0.0),
+        marker_positions=[(0, 0, 0)]*5, required_active_labels=[0, 0, 0, 0, 0])
+    modeldef_message = ModelDefinitionsMessage([body_def])
+    client._conn.add_message(modeldef_message)
+
+    mocapframe_packet_occluded = open('test_data/mocapframe_packet_occluded_v3.bin', 'rb').read()
+    client._conn.add_packet(mocapframe_packet_occluded)
+
+    callback = mock.Mock()
+    client.set_callback(callback)
+    client.spin()
+
+    callback.assert_called_once()
+    (rigid_bodies, labelled_markers, timing), _ = callback.call_args
+
+    # All labelled markers should be present
+    assert len(labelled_markers) == 5
+
+    # Labelled markers should be in order
+    assert labelled_markers[0].marker_id == 1
+    assert labelled_markers[1].marker_id == 2
+    assert labelled_markers[2].marker_id == 3
+    assert labelled_markers[3].marker_id == 4
+    assert labelled_markers[4].marker_id == 5
+
+    # Only actually-occluded markers should have occluded set
+    assert labelled_markers[0].occluded
+    assert not labelled_markers[1].occluded
+    assert not labelled_markers[2].occluded
+    assert not labelled_markers[3].occluded
+    assert not labelled_markers[4].occluded
+
+    # All labelled markers should have the same position as the corresponding markerset marker
+    assert labelled_markers[0].position == (-0.1684834212064743, 0.2831866443157196, 0.4908055067062378)
+    assert labelled_markers[1].position == (-0.13990189135074615, 0.4736242890357971, 0.4416866898536682)
+    assert labelled_markers[2].position == (-0.12027807533740997, 0.18182460963726044, 0.462637722492218)
+    assert labelled_markers[3].position == (-0.24141907691955566, 0.2144920825958252, 0.4675152003765106)
+    assert labelled_markers[4].position == (-0.10057533532381058, 0.26159632205963135, 0.49067628383636475)
 
 
 def test_client_calls_synchronizer_for_echo_response(client_with_fakes):
