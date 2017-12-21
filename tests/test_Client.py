@@ -77,9 +77,10 @@ def test_client_calls_callback_for_mocapframe(client_with_fakes, test_packets, t
 
     # Check call arguments
     callback.assert_called_once()
-    (rigid_bodies, labelled_markers, timing), _ = callback.call_args
+    (rigid_bodies, labelled_markers, timing, message), _ = callback.call_args
     assert rigid_bodies == mocapframe_message.rigid_bodies
     assert labelled_markers == mocapframe_message.labelled_markers
+    assert message == mocapframe_message
     assert timing.timestamp == pytest.approx(427584.91)
     # SampleClient says 5.5ms
     assert timing.system_latency == pytest.approx(0.005495071)
@@ -107,7 +108,7 @@ def test_client_fills_in_occluded_markers(client_with_fakes):
     client.spin()
 
     callback.assert_called_once()
-    (rigid_bodies, labelled_markers, timing), _ = callback.call_args
+    (rigid_bodies, labelled_markers, timing, message), _ = callback.call_args
 
     # All labelled markers should be present
     assert len(labelled_markers) == 5

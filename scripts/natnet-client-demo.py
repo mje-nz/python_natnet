@@ -42,28 +42,37 @@ class ClientApp(object):
             self._client.set_callback(self.callback)
         self._client.spin()
 
-    def callback(self, rigid_bodies, markers, timing):
+    def callback(self, rigid_bodies, markers, timing, frame_message):
         """
 
         :type rigid_bodies: list[RigidBody]
         :type markers: list[LabelledMarker]
         :type timing: TimestampAndLatency
+        :type frame_message: MocapFrameMessage
         """
         print()
         print('{:.1f}s: Received mocap frame'.format(timing.timestamp))
         if rigid_bodies:
             print('Rigid bodies:')
             for b in rigid_bodies:
-                print('\t Id {}: ({: 5.2f}, {: 5.2f}, {: 5.2f}), ({: 5.2f}, {: 5.2f}, {: 5.2f}, {: 5.2f})'.format(
+                print('\tId {}: ({: 5.2f}, {: 5.2f}, {: 5.2f}), ({: 5.2f}, {: 5.2f}, {: 5.2f}, {: 5.2f})'.format(
                     b.id_, *(b.position + b.orientation)
                 ))
         if markers:
-            print('Markers')
+            print('Markers:')
             for m in markers:
-                print('\t Model {} marker {}: size {:.4f}mm, pos ({: 5.2f}, {: 5.2f}, {: 5.2f}), '.format(
-                    m.model_id, m.marker_id, 1000*m.size, *m.position
-                ))
-        print('\t Latency: {:.1f}ms (system {:.1f}ms, transit {:.1f}ms, processing {:.2f}ms)'.format(
+                print('\tModel {} marker {}: size {:.4f}mm, pos ({: 5.2f}, {: 5.2f}, {: 5.2f})'.format(
+                    m.model_id, m.marker_id, 1000*m.size, *m.position)
+                    + (' [occluded]' if m.occluded else '')
+                    + (' [model solved]' if m.model_solved else ''))
+        if frame_message.markersets:
+            print('Markersets:')
+            for m in frame_message.markersets:
+                markers = ', '.join('({: 5.2f}, {: 5.2f}, {: 5.2f})'.format(*marker)
+                                    for marker in m.markers)
+                print('\t{:9} [{}]'.format(m.name + ':', markers))
+
+        print('Latency: {:.1f}ms (system {:.1f}ms, transit {:.1f}ms, processing {:.2f}ms)'.format(
             1000*timing.latency, 1000*timing.system_latency, 1000*timing.transit_latency,
             1000*timing.processing_latency
         ))

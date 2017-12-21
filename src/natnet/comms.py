@@ -341,6 +341,7 @@ class Client(object):
 
     @classmethod
     def _setup_client(cls, conn, server_info, logger):
+        logger.debug('Listening on port %s', server_info.connection_info.data_port)
         conn.bind_data_socket(server_info.connection_info.multicast_address,
                               server_info.connection_info.data_port)
 
@@ -465,6 +466,7 @@ class Client(object):
         markers = set((l.model_id, l.marker_id) for l in labelled_markers)
         missing_markers = self._expected_markers - markers
         if missing_markers:
+            labelled_markers = labelled_markers[:]  # Copy so original message is not modified
             for model_id, marker_id in missing_markers:
                 # Get model-solved position from markerset
                 try:
@@ -489,6 +491,7 @@ class Client(object):
                 )
                 labelled_markers.append(reconstructed_marker)
             labelled_markers.sort(key=lambda lm: (lm.model_id, lm.marker_id))
+        return labelled_markers
 
     def _handle_frame(self, frame_message, received_time):
         rigid_bodies = frame_message.rigid_bodies
@@ -498,11 +501,11 @@ class Client(object):
         if labelled_markers and markersets:
             # Labelled markers and "solver replaces occlusion" are both on, so we can fill in the
             # missing labelled markers from the corresponding markerset
-            self._do_occlusion_workaround(labelled_markers, markersets)
+            labelled_markers = self._do_occlusion_workaround(labelled_markers, markersets)
 
         timestamp_and_latency = TimestampAndLatency._calculate(
             received_time, frame_message.timing_info, self._clock_synchronizer)
-        self._callback(rigid_bodies, labelled_markers, timestamp_and_latency)
+        self._callback(rigid_bodies, labelled_markers, timestamp_and_latency, frame_message)
 
         if frame_message.tracked_models_changed:
             self._log.info('Tracked models have changed, requesting new model definitions')
