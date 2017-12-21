@@ -8,10 +8,11 @@ No part of python_natnet, including this file, may be copied, modified,
 propagated, or distributed except according to the terms contained in the
 LICENSE file.
 
-This message contains descriptions of all tracked models (rigid bodies, skeletons, markersets) and devices.
+This message contains descriptions of all tracked models (rigid bodies, skeletons, markersets) and
+devices.
 
-It is not sent automatically when tracked models changes. The next FrameOfData will have a flag set, then the client
-sends a RequestModelDefinitions message to prompt the server to send this.
+It is not sent automatically when tracked models changes. The next FrameOfData message will have a
+flag set, then the client sends a RequestModelDefinitions message to prompt the server to send this.
 """
 
 __all__ = ['ModelDefinitionsMessage', 'MarkersetDescription', 'RigidBodyDescription', 'SkeletonDescription',

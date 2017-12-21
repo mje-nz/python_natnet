@@ -19,7 +19,7 @@ may not work.
 """
 
 __all__ = ['Markerset', 'RigidBody', 'Skeleton', 'LabelledMarker', 'AnalogChannelData', 'Device',
-           'TimingInfo', 'MocapFrameMessage']
+           'TimingInfo', 'FrameOfDataMessage']
 
 try:
     # Only need this for type annotations
@@ -319,7 +319,7 @@ class TimingInfo(object):
 
 @register_message(MessageId.FrameOfData)
 @attr.s
-class MocapFrameMessage(object):
+class FrameOfDataMessage(object):
 
     """Frame of mocap data.
 
@@ -354,7 +354,7 @@ class MocapFrameMessage(object):
             version (:class:`~natnet.protocol.common.Version`):
 
         Returns:
-            MocapFrameMessage: Deserialized message
+            FrameOfDataMessage: Deserialized message
         """
 
         frame_number = data.unpack(uint32_t)

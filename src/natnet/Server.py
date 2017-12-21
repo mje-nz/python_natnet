@@ -20,9 +20,9 @@ import attr
 from . import Logger, protocol
 from .__version__ import __version__
 from .protocol import (ConnectMessage, DiscoveryMessage, EchoRequestMessage, EchoResponseMessage,
-                       MocapFrameMessage, ModelDefinitionsMessage, RequestModelDefinitionsMessage,
+                       FrameOfDataMessage, ModelDefinitionsMessage, RequestModelDefinitionsMessage,
                        ServerInfoMessage)
-from .protocol.MocapFrameMessage import TimingInfo
+from .protocol.FrameOfDataMessage import TimingInfo
 from .protocol.ServerInfoMessage import ConnectionInfo
 
 
@@ -133,7 +133,7 @@ class Server(object):
             transmit_timestamp=now_int
         )
         self._last_frame_number += 1
-        msg = MocapFrameMessage(
+        msg = FrameOfDataMessage(
             frame_number=self._last_frame_number,
             markersets=[],
             rigid_bodies=[],

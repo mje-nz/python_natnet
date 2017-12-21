@@ -1,16 +1,16 @@
-"""Tests for parsing MocapFrame messages."""
+"""Tests for parsing FrameOfData messages."""
 
 import pytest
 
-from natnet.protocol import MocapFrameMessage, Version, deserialize, serialize
+from natnet.protocol import FrameOfDataMessage, Version, deserialize, serialize
 from natnet.protocol.common import ParseBuffer
-from natnet.protocol.MocapFrameMessage import LabelledMarker, Markerset, RigidBody, TimingInfo
+from natnet.protocol.FrameOfDataMessage import LabelledMarker, Markerset, RigidBody, TimingInfo
 
 
-def test_parse_mocapframe_packet_v3():
-    """Test parsing a NatNet 3.0 packet containing a MocapFrame."""
+def test_parse_frameofdata_packet_v3():
+    """Test parsing a NatNet 3.0 packet containing a MocapFrame message."""
     packet = open('test_data/mocapframe_packet_v3.bin', 'rb').read()
-    frame = deserialize(packet, Version(3), strict=True)  # type: MocapFrameMessage
+    frame = deserialize(packet, Version(3), strict=True)  # type: FrameOfDataMessage
 
     # These values are verified against SampleClient where easy
 
@@ -72,7 +72,7 @@ def test_parse_mocapframe_packet_v3():
 
 
 def test_serialize_mocapframe_message():
-    """Test serializing a MocapFrameMessage."""
+    """Test serializing a FrameOfDataMessage."""
     packet = open('test_data/mocapframe_packet_v3.bin', 'rb').read()
 
     rigid_body = RigidBody(
@@ -114,7 +114,7 @@ def test_serialize_mocapframe_message():
         camera_data_received_timestamp=1416497745808,
         transmit_timestamp=1416497748722
     )
-    msg = MocapFrameMessage(
+    msg = FrameOfDataMessage(
         frame_number=162734,
         markersets=[],
         rigid_bodies=[rigid_body],
@@ -139,7 +139,7 @@ def test_serialize_and_deserialize_markerset():
     assert Markerset.deserialize(packet, Version(3)) == markerset
 
 
-def test_deserialize_mocapframe(benchmark):
-    """Benchmark parsing a NatNet 3.0 packet containing a MocapFrame."""
+def test_deserialize_frameofdata(benchmark):
+    """Benchmark parsing a NatNet 3.0 packet containing a FrameOfData message."""
     packet = open('test_data/mocapframe_packet_v3.bin', 'rb').read()
     benchmark(deserialize, packet, Version(3))

@@ -21,7 +21,7 @@ import attr
 
 from . import protocol
 from .logging import Logger
-from .protocol.MocapFrameMessage import LabelledMarker
+from .protocol.FrameOfDataMessage import LabelledMarker
 from .protocol.ModelDefinitionsMessage import (MarkersetDescription, RigidBodyDescription,
                                                SkeletonDescription)
 
@@ -301,7 +301,7 @@ class TimestampAndLatency(object):
 
         Args:
             received_timestamp (float):
-            timing_info (:class:`~protocol.MocapFrameMessage.TimingInfo`):
+            timing_info (:class:`~protocol.FrameOfDataMessage.TimingInfo`):
             clock (:class:`ClockSynchronizer`):
         """
         timestamp = clock.server_to_local_time(timing_info.camera_mid_exposure_timestamp)
@@ -421,8 +421,8 @@ class Client(object):
     def set_callback(self, callback):
         """Set the frame callback.
 
-        It will be called with a list of :class:`~natnet.protocol.MocapFrameMessage.RigidBody`, a list of
-        :class:`~natnet.protocol.MocapFrameMessage.LabelledMarker`, and a :class:`~natnet.comms.TimestampAndLatency`.
+        It will be called with a list of :class:`~natnet.protocol.FrameOfDataMessage.RigidBody`, a list of
+        :class:`~natnet.protocol.FrameOfDataMessage.LabelledMarker`, and a :class:`~natnet.comms.TimestampAndLatency`.
         """
         self._callback = callback
 

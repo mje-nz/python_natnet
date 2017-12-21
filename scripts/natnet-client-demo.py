@@ -48,7 +48,7 @@ class ClientApp(object):
         :type rigid_bodies: list[RigidBody]
         :type markers: list[LabelledMarker]
         :type timing: TimestampAndLatency
-        :type frame_message: MocapFrameMessage
+        :type frame_message: natnet.protocol.FrameOfDataMessage
         """
         print()
         print('{:.1f}s: Received mocap frame'.format(timing.timestamp))

@@ -41,7 +41,7 @@ def test_packets():
 def test_messages(test_packets):
     server_info_packet, mocapframe_packet, modeldef_packet = test_packets
     server_info_message = natnet.protocol.deserialize(server_info_packet)  # type: natnet.protocol.ServerInfoMessage
-    mocapframe_message = natnet.protocol.deserialize(mocapframe_packet)  # type: natnet.protocol.MocapFrameMessage
+    mocapframe_message = natnet.protocol.deserialize(mocapframe_packet)  # type: natnet.protocol.FrameOfDataMessage
     modeldef_message = natnet.protocol.deserialize(modeldef_packet)   # type: natnet.protocol.ModelDefinitionsMessage
     return server_info_message, mocapframe_message, modeldef_message
 

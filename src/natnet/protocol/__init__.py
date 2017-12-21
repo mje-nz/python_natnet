@@ -23,7 +23,7 @@ __all__ = [
     'MessageId', 'Version',
     # Messages
     'ConnectMessage', 'DiscoveryMessage', 'EchoRequestMessage', 'EchoResponseMessage',
-    'MocapFrameMessage', 'ModelDefinitionsMessage', 'RequestModelDefinitionsMessage', 'ServerInfoMessage']
+    'FrameOfDataMessage', 'ModelDefinitionsMessage', 'RequestModelDefinitionsMessage', 'ServerInfoMessage']
 
 from .common import (MessageId, Version, deserialize, deserialize_header, deserialize_payload,
                      serialize)
@@ -31,7 +31,7 @@ from .ConnectMessage import ConnectMessage
 from .DiscoveryMessage import DiscoveryMessage
 from .EchoRequestMessage import EchoRequestMessage
 from .EchoResponseMessage import EchoResponseMessage
-from .MocapFrameMessage import MocapFrameMessage
+from .FrameOfDataMessage import FrameOfDataMessage
 from .ModelDefinitionsMessage import ModelDefinitionsMessage
 from .RequestModelDefinitionsMessage import RequestModelDefinitionsMessage
 from .ServerInfoMessage import ServerInfoMessage
