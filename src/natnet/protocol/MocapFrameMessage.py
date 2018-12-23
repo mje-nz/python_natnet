@@ -221,13 +221,13 @@ class LabelledMarker(object):
 
     @property
     def has_model(self):
-        """True if the marker has an associated asset (e.g. rigid body)."""
+        """True if the marker has an associated asset in the data stream (e.g. rigid body)."""
         assert self._params is not None
         return (self._params & self._HAS_MODEL) != 0
 
     @property
     def unlabelled(self):
-        """True if the marker is 'unlabelled' i.e. does not have an associated asset."""
+        """True if the marker is 'unlabelled', but has a point cloud ID i.e. does not have an associated asset."""
         assert self._params is not None
         return (self._params & self._UNLABELLED) != 0
 
