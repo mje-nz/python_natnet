@@ -97,6 +97,7 @@ class RigidBody(object):
                 marker_ids = [data.unpack(uint32_t) for i in range(marker_count)]  # noqa: F841
                 marker_sizes = [data.unpack(float_t) for i in range(marker_count)]  # noqa: F841
 
+            # TODO: Padding is in 3.0.1 SDK sample but not 3.1.0?
             padding = data.unpack(uint32_t)  # noqa: F841
 
         mean_error = None

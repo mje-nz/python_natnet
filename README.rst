@@ -22,7 +22,8 @@ Overview
 
 .. end-badges
 
-This is a NatNet client library written in Python, supporting protocol version 3 (Motive version 2.0).
+This is a NatNet client library written in Python, supporting protocol version 3.0.1 (Motive version 2.0).
+Not tested with protocol 3.1.0 (Motive 2.1), and there are some minor changes in the protocol which might break it.
 
 Features:
 
