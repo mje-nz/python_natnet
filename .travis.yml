@@ -14,7 +14,7 @@ python:
   - 3.6
 matrix:
   include:
-    - env: TOXENV=py27  # Specifically use py27 env to get custom deps
+    - env: TOXENV=py27  # 2.7 with old attrs version
       python: 2.7
     - env: TOXENV=py27-check
     - python: 3.6
@@ -34,12 +34,12 @@ install:
   - virtualenv --version
   - easy_install --version
   - $PIP --version
-  - $PIP install tox codecov
+  - $PIP install tox
   - tox --version
 script:
   - tox -v
 after_success:
-  - codecov
+  - tox -e codecov
 after_failure:
   - more .tox/log/* | cat
   - more .tox/*/log/* | cat

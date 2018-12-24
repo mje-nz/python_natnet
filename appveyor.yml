@@ -26,7 +26,6 @@ init:
   - ps: 'ls C:\Python*'
 install:
   - '%PYTHON%\Scripts\pip install setuptools>=18.0.1 wheel tox virtualenv>=13.1.0 coverage'
-  - 'choco install codecov'
   - '%PYTHON%\Scripts\virtualenv --version'
   - '%PYTHON%\Scripts\easy_install --version'
   - '%PYTHON%\Scripts\pip --version'
@@ -37,8 +36,7 @@ on_failure:
   - ps: 'dir env:'
   - ps: 'get-content .tox\*\log\*'
 on_success:
-  - '%PYTHON%\Scripts\coverage xml -i -o coverage.xml || exit 0'
-  - 'codecov -f coverage.xml -e PYTHON TOXENV'
+  - '%PYTHON%\Scripts\tox -e codecov'
 artifacts:
   - path: 'dist\*'
 
