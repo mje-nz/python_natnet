@@ -2,6 +2,6 @@ mock
 multiprocess
 # Leave pytest implied so we can restrict the version later
 pytest-benchmark
-pytest-timeout
+pytest-timeout<1.3
 pytest-travis-fold
 pytest-cov
