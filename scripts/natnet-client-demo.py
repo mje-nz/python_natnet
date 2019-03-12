@@ -9,6 +9,8 @@ propagated, or distributed except according to the terms contained in the
 LICENSE file.
 """
 
+from __future__ import print_function
+
 import argparse
 import time
 
