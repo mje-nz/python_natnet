@@ -11,6 +11,14 @@ def test_parse_requestmodeldef_packet_v3():
     # No payload
 
 
+def test_parse_requestmodeldef_packet_v2():
+    """Test parsing a NatNet 2.10 packet containing a RequestModelDefinitions message."""
+    data = open('test_data/requestmodeldef_packet_v2.bin', 'rb').read()
+    deserialize(data, Version(2, 10), strict=True)
+
+    # No payload
+
+
 def test_serialize_requestmodeldef_message():
     """Test serializing a RequestModelDefinitions message."""
     expected = open('test_data/requestmodeldef_packet_v3.bin', 'rb').read()

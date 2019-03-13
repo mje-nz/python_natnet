@@ -20,6 +20,20 @@ def test_parse_serverinfo_packet_v3():
     assert info.connection_info.multicast_address == u'239.255.42.99'
 
 
+def test_parse_serverinfo_packet_v2():
+    """Test parsing a NatNet 2.10 packet containing a ServerInfo message."""
+    packet = open('test_data/serverinfo_packet_v2.bin', 'rb').read()
+    info = deserialize(packet, Version(2, 10), strict=True)  # type: ServerInfoMessage
+
+    # These values are verified against SampleClient
+
+    assert info.app_name == u'Motive'
+    assert info.app_version == Version(1, 10)
+    assert info.natnet_version == Version(2, 10)
+    assert info.high_resolution_clock_frequency is None
+    assert info.connection_info is None
+
+
 def test_serialize_serverinfo_message():
     """Test parsing a NatNet 3.0 packet containing a ServerInfo message."""
     packet = open('test_data/serverinfo_packet_v3.bin', 'rb').read()
