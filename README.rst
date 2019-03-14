@@ -23,11 +23,14 @@ Overview
 .. end-badges
 
 This is a NatNet client library written in Python, supporting protocol version 3.0.1 (Motive version 2.0).
-Not tested with protocol 3.1.0 (Motive 2.1), and there are some minor changes in the protocol which might break it.
+Regularly rested with protocol 3.0.0 (Motive 2.0).
+Reported to work with protocol 3.1.0 (Motive 2.1).
+Support for protocol 2.10 in progress (Motive 1.10).
 
 Features:
 
 * Supports rigid bodies and markers
+* Skeleton support in progress
 * Synchronizes clocks with the server to calculate correct frame timestamps
 * Server autodiscovery
 * Free software: BSD 3-Clause License
