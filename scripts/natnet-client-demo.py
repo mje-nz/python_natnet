@@ -51,10 +51,11 @@ class ClientApp(object):
             self._client.set_callback(self.callback)
         self._client.spin()
 
-    def callback(self, rigid_bodies, markers, timing):
+    def callback(self, rigid_bodies, skeletons, markers, timing):
         """
 
         :type rigid_bodies: list[RigidBody]
+        :type rigid_bodies: list[Skeleton]
         :type markers: list[LabelledMarker]
         :type timing: TimestampAndLatency
         """
@@ -63,17 +64,32 @@ class ClientApp(object):
         if rigid_bodies:
             print('Rigid bodies:')
             for b in rigid_bodies:
-                print('\t Id {}: ({: 5.2f}, {: 5.2f}, {: 5.2f}), ({: 5.2f}, {: 5.2f}, {: 5.2f}, {: 5.2f})'.format(
+                print('    Id {}: ({: 5.2f}, {: 5.2f}, {: 5.2f}), ({: 5.2f}, {: 5.2f}, {: 5.2f}, {: 5.2f})'.format(
                     b.id_, *(b.position + b.orientation)
                 ))
+        if skeletons:
+            print('Skeletons:')
+            for s in skeletons:
+                print('    Id {}: {} bones'.format(s.id_, len(s.rigid_bodies)))
+                for b in s.rigid_bodies:
+                    # TODO: Is this just a skeleton thing? Should the ID be split at parse time?
+                    body_id = b.id_ & 0xFFFF
+                    parent_id = b.id_ >> 16
+                    message = '        Bone {:2d}: '.format(body_id)
+                    if parent_id != s.id_:
+                        message += 'parent {}, '.format(parent_id)
+                    message += '({: 5.2f}, {: 5.2f}, {: 5.2f}), ({: 5.2f}, {: 5.2f}, {: 5.2f}, {: 5.2f})'.format(
+                        *(b.position + b.orientation)
+                    )
+                    print(message)
         if markers:
-            print('Markers')
+            print('Markers:')
             for m in markers:
-                print('\t Model {} marker {}: size {:.4f}mm, pos ({: 5.2f}, {: 5.2f}, {: 5.2f}), '.format(
+                print('    Model {} marker {:2d}: size {:7.4f}mm, pos ({: 5.2f}, {: 5.2f}, {: 5.2f}), '.format(
                     m.model_id, m.marker_id, 1000*m.size, *m.position
                 ))
         if timing.latency is not None:
-            print('\t Latency: {:.1f}ms (system {:.1f}ms, transit {:.1f}ms, processing {:.2f}ms)'.format(
+            print('Latency: {:.1f}ms (system {:.1f}ms, transit {:.1f}ms, processing {:.2f}ms)'.format(
                 1000*timing.latency, 1000*timing.system_latency, 1000*timing.transit_latency,
                 1000*timing.processing_latency
             ))

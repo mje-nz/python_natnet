@@ -430,7 +430,8 @@ class Client(object):
     def set_callback(self, callback):
         """Set the frame callback.
 
-        It will be called with a list of :class:`~natnet.protocol.MocapFrameMessage.RigidBody`, a list of
+        It will be called with a list of :class:`~natnet.protocol.MocapFrameMessage.RigidBody`, a
+        list of :class:`~natnet.protocol.MocapFrameMessage.Skeleton`, a list of
         :class:`~natnet.protocol.MocapFrameMessage.LabelledMarker`, and a :class:`~natnet.comms.TimestampAndLatency`.
         """
         self._callback = callback
@@ -502,6 +503,7 @@ class Client(object):
 
     def _handle_frame(self, frame_message, received_time):
         rigid_bodies = frame_message.rigid_bodies
+        skeletons = frame_message.skeletons
         labelled_markers = frame_message.labelled_markers
         markersets = frame_message.markersets
 
@@ -512,7 +514,7 @@ class Client(object):
 
         timestamp_and_latency = TimestampAndLatency._calculate(
             received_time, frame_message.timing_info, self._clock_synchronizer)
-        self._callback(rigid_bodies, labelled_markers, timestamp_and_latency)
+        self._callback(rigid_bodies, skeletons, labelled_markers, timestamp_and_latency)
 
         if frame_message.tracked_models_changed:
             self._log.info('Tracked models have changed, requesting new model definitions')
