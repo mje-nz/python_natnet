@@ -32,12 +32,7 @@ class ClientApp(object):
         if server_name == 'fake':
             client = natnet.fakes.SingleFrameFakeClient.fake_connect(rate=rate)
         elif server_name == 'fake_v2':
-            client = natnet.fakes.SingleFrameFakeClient.fake_connect(
-                rate=rate,
-                frame_packet_filename='mocapframe_packet_v2.bin',
-                serverinfo_packet_filename='serverinfo_packet_v2.bin',
-                modeldef_packet_filename='modeldef_packet_v2.bin'
-            )
+            client = natnet.fakes.SingleFrameFakeClient.fake_connect_v2(rate=rate)
         else:
             client = natnet.Client.connect(server_name)
         if client is None:

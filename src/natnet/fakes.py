@@ -116,3 +116,10 @@ class SingleFrameFakeClient(Client):
         inst = cls(conn, clock_synchronizer, logger)
         inst._handle_model_definitions(deserialize(model_definitions_packet))
         return inst
+
+    @classmethod
+    def fake_connect_v2(cls, *args, **kwargs):
+        kwargs['frame_packet_filename'] = 'mocapframe_packet_v2.bin'
+        kwargs['serverinfo_packet_filename'] = 'serverinfo_packet_v2.bin'
+        kwargs['modeldef_packet_filename'] = 'modeldef_packet_v2.bin'
+        return cls.fake_connect(*args, **kwargs)
