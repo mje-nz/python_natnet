@@ -23,7 +23,7 @@ def test_parse_serverinfo_packet_v3():
 def test_parse_serverinfo_packet_v2():
     """Test parsing a NatNet 2.10 packet containing a ServerInfo message."""
     packet = open('test_data/serverinfo_packet_v2.bin', 'rb').read()
-    info = deserialize(packet, Version(2, 10), strict=True)  # type: ServerInfoMessage
+    info = deserialize(packet, Version(3), strict=True)  # type: ServerInfoMessage
 
     # These values are verified against SampleClient
 

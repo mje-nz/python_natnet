@@ -176,6 +176,14 @@ class SerDesRegistry(object):
 
         return register_message_impl
 
+    def set_version(self, version):
+        """Set the NatNet protocol version used for deserialization.
+
+        Args:
+            version (Version): New version to use
+        """
+        self._version = version
+
     @staticmethod
     def serialize(message):
         """Serialize a message instance into a binary packet.
@@ -253,6 +261,11 @@ _registry = SerDesRegistry()
 @functools.wraps(_registry.register_message)
 def register_message(*args, **kwargs):
     return _registry.register_message(*args, **kwargs)
+
+
+@functools.wraps(_registry.set_version)
+def set_version(*args, **kwargs):
+    return _registry.set_version(*args, **kwargs)
 
 
 @functools.wraps(_registry.serialize)

@@ -16,7 +16,7 @@ import timeit
 
 from .comms import Client, ClockSynchronizer, Connection
 from .logging import Logger
-from .protocol import MessageId, deserialize, deserialize_header, serialize
+from .protocol import MessageId, deserialize, deserialize_header, serialize, set_version
 
 
 class FakeConnection(Connection):
@@ -110,6 +110,7 @@ class SingleFrameFakeClient(Client):
         frame_packet = open(os.path.join(test_data_folder, frame_packet_filename), 'rb').read()
         server_info_packet = open(os.path.join(test_data_folder, serverinfo_packet_filename), 'rb').read()
         model_definitions_packet = open(os.path.join(test_data_folder, modeldef_packet_filename), 'rb').read()
+        set_version(deserialize(server_info_packet).natnet_version)
         conn = FakeConnection([frame_packet], repeat=True, rate=rate)
         clock_synchronizer = FakeClockSynchronizer(deserialize(server_info_packet), logger)
         inst = cls(conn, clock_synchronizer, logger)

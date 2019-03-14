@@ -63,7 +63,7 @@ class ServerInfoMessage(object):
 
         high_resolution_clock_frequency = None
         connection_info = None
-        if version >= Version(3):
+        if natnet_version >= Version(3):
             high_resolution_clock_frequency = data.unpack(uint64_t)
             connection_info = ConnectionInfo.deserialize(data, version)
 

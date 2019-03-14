@@ -31,6 +31,13 @@ class ClientApp(object):
     def connect(cls, server_name, rate, quiet):
         if server_name == 'fake':
             client = natnet.fakes.SingleFrameFakeClient.fake_connect(rate=rate)
+        elif server_name == 'fake_v2':
+            client = natnet.fakes.SingleFrameFakeClient.fake_connect(
+                rate=rate,
+                frame_packet_filename='mocapframe_packet_v2.bin',
+                serverinfo_packet_filename='serverinfo_packet_v2.bin',
+                modeldef_packet_filename='modeldef_packet_v2.bin'
+            )
         else:
             client = natnet.Client.connect(server_name)
         if client is None:
@@ -65,10 +72,11 @@ class ClientApp(object):
                 print('\t Model {} marker {}: size {:.4f}mm, pos ({: 5.2f}, {: 5.2f}, {: 5.2f}), '.format(
                     m.model_id, m.marker_id, 1000*m.size, *m.position
                 ))
-        print('\t Latency: {:.1f}ms (system {:.1f}ms, transit {:.1f}ms, processing {:.2f}ms)'.format(
-            1000*timing.latency, 1000*timing.system_latency, 1000*timing.transit_latency,
-            1000*timing.processing_latency
-        ))
+        if timing.latency is not None:
+            print('\t Latency: {:.1f}ms (system {:.1f}ms, transit {:.1f}ms, processing {:.2f}ms)'.format(
+                1000*timing.latency, 1000*timing.system_latency, 1000*timing.transit_latency,
+                1000*timing.processing_latency
+            ))
 
     def callback_quiet(self, *_):
         if time.time() - self._last_printed > 1:
@@ -81,13 +89,20 @@ def main():
     parser.add_argument('--server', help='Will autodiscover if not supplied')
     parser.add_argument('--fake', action='store_true',
                         help='Produce fake data at `rate` instead of connecting to actual server')
+    parser.add_argument('--fake-v2', action='store_true',
+                        help='Produce fake data at `rate` instead of connecting to actual server (NatNet 2.10)')
     parser.add_argument('--rate', type=float, default=10,
                         help='Rate at which to produce fake data (Hz)')
     parser.add_argument('--quiet', action='store_true')
     args = parser.parse_args()
 
     try:
-        app = ClientApp.connect('fake' if args.fake else args.server, args.rate, args.quiet)
+        server_name = args.server
+        if args.fake:
+            server_name = 'fake'
+        if args.fake_v2:
+            server_name = 'fake_v2'
+        app = ClientApp.connect(server_name, args.rate, args.quiet)
         app.run()
     except natnet.DiscoveryError as e:
         print('Error:', e)

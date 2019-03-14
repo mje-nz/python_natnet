@@ -18,7 +18,7 @@ interested in), then use :func:`~natnet.protocol.deserialize_payload` to get a m
 
 __all__ = [
     # Functions
-    'serialize', 'deserialize', 'deserialize_header', 'deserialize_payload',
+    'set_version', 'serialize', 'deserialize', 'deserialize_header', 'deserialize_payload',
     # Misc
     'MessageId', 'Version',
     # Messages
@@ -26,7 +26,7 @@ __all__ = [
     'MocapFrameMessage', 'ModelDefinitionsMessage', 'RequestModelDefinitionsMessage', 'ServerInfoMessage']
 
 from .common import (MessageId, Version, deserialize, deserialize_header, deserialize_payload,
-                     serialize)
+                     serialize, set_version)
 from .ConnectMessage import ConnectMessage
 from .DiscoveryMessage import DiscoveryMessage
 from .EchoRequestMessage import EchoRequestMessage

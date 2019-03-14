@@ -304,17 +304,25 @@ class TimestampAndLatency(object):
             timing_info (:class:`~protocol.MocapFrameMessage.TimingInfo`):
             clock (:class:`ClockSynchronizer`):
         """
-        timestamp = clock.server_to_local_time(timing_info.camera_mid_exposure_timestamp)
-        system_latency_ticks = timing_info.transmit_timestamp - timing_info.camera_mid_exposure_timestamp
-        system_latency = clock.server_ticks_to_seconds(system_latency_ticks)
-        transit_latency = received_timestamp - clock.server_to_local_time(timing_info.transmit_timestamp)
-        processing_latency = timeit.default_timer() - received_timestamp
-        return cls(timestamp, system_latency, transit_latency, processing_latency)
+        if timing_info.camera_mid_exposure_timestamp is not None:
+            timestamp = clock.server_to_local_time(timing_info.camera_mid_exposure_timestamp)
+            system_latency_ticks = timing_info.transmit_timestamp - timing_info.camera_mid_exposure_timestamp
+            system_latency = clock.server_ticks_to_seconds(system_latency_ticks)
+            transit_latency = received_timestamp - clock.server_to_local_time(timing_info.transmit_timestamp)
+            processing_latency = timeit.default_timer() - received_timestamp
+            return cls(timestamp, system_latency, transit_latency, processing_latency)
+        else:
+            # TODO: Figure out what to do on v2
+            timestamp = clock.server_to_local_time(timing_info.timestamp)
+            return cls(timestamp, None, None, None)
 
     @property
     def latency(self):
         """Time from camera mid-exposure to calling callback."""
-        return self.system_latency + self.transit_latency + self.processing_latency
+        if self.system_latency:
+            return self.system_latency + self.transit_latency + self.processing_latency
+        else:
+            return None
 
 
 class DiscoveryError(EnvironmentError):
@@ -341,6 +349,8 @@ class Client(object):
 
     @classmethod
     def _setup_client(cls, conn, server_info, logger):
+        protocol.set_version(server_info.natnet_version)
+
         conn.bind_data_socket(server_info.connection_info.multicast_address,
                               server_info.connection_info.data_port)
 
