@@ -66,7 +66,73 @@ def test_parse_mocapframe_packet_v3():
     assert frame.timing_info.camera_data_received_timestamp == 1416497745808
     assert frame.timing_info.transmit_timestamp == 1416497748722
 
-    assert frame._params == 0
+    assert not frame.is_recording
+    assert not frame.tracked_models_changed
+
+
+def test_parse_mocapframe_packet_v2():
+    """Test parsing a NatNet 2.10 packet containing a MocapFrame."""
+    # Packet 778 from Omar's data
+    packet = open('test_data/mocapframe_packet_v2.bin', 'rb').read()
+    frame = deserialize(packet, Version(2, 10), strict=True)  # type: MocapFrameMessage
+
+    # These values are verified against SampleClient where easy
+
+    assert frame.frame_number == 109238
+    assert len(frame.markersets) == 3
+    assert frame.markersets[0].name == 'RigidBody 1'
+    assert frame.markersets[1].name == 'Karlie'
+    assert frame.markersets[2].name == 'all'
+
+    assert len(frame.rigid_bodies) == 1
+    body = frame.rigid_bodies[0]
+    assert body.id_ == 1
+    assert body.position == pytest.approx((1.38, 1.21, 1.62), abs=0.005)
+    assert body.orientation == pytest.approx((-0.74, 0.51, 0.12, -0.42), abs=0.005)
+    assert body.mean_error == pytest.approx(0.0)
+    assert not body.tracking_valid
+
+    assert len(frame.skeletons) == 1
+    skeleton = frame.skeletons[0]
+    assert skeleton.id_ == 4
+    assert len(skeleton.rigid_bodies) == 21
+    bone0 = skeleton.rigid_bodies[0]
+    assert bone0.id_ == 262145
+    assert bone0.position == pytest.approx((0.50, 0.85, 0.43), abs=0.005)
+    assert bone0.orientation == pytest.approx((0.02, 0.80, 0.01, 0.60), abs=0.005)
+    # skip 19 bones
+    bone20 = skeleton.rigid_bodies[20]
+    assert bone20.id_ == 262165
+    assert bone20.position == pytest.approx((-0.00, -0.06, 0.13), abs=0.005)
+    assert bone20.orientation == pytest.approx((-0.00, 0.00, 0.00, -1.00), abs=0.005)
+
+    assert len(frame.labelled_markers) == 44
+    marker0 = frame.labelled_markers[0]
+    assert marker0.model_id == 4
+    assert marker0.marker_id == 5
+    assert marker0.position == pytest.approx((0.54, 0.93, 0.28), abs=0.005)
+    assert marker0.size == pytest.approx(0.02, abs=0.005)
+    assert not marker0.occluded
+    assert marker0.point_cloud_solved
+    assert not marker0.model_solved
+    # Skip 42 markers
+    marker43 = frame.labelled_markers[43]
+    assert marker43.model_id == 0
+    assert marker43.marker_id == 7637
+    assert marker43.position == pytest.approx((1.13, 1.48, 1.42), abs=0.005)
+    assert marker43.size == pytest.approx(0.01, abs=0.005)
+    # assert marker5._params == 18
+    assert not marker43.occluded
+    assert marker43.point_cloud_solved
+    assert not marker43.model_solved
+
+    assert len(frame.force_plates) == 0
+    assert len(frame.devices) == 0
+
+    assert frame.timing_info.timecode == 0
+    assert frame.timing_info.timecode_subframe == 0
+    assert frame.timing_info.timestamp == pytest.approx(910.32, abs=0.005)
+
     assert not frame.is_recording
     assert not frame.tracked_models_changed
 

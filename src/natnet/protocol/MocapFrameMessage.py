@@ -98,7 +98,7 @@ class RigidBody(object):
                 marker_sizes = [data.unpack(float_t) for i in range(marker_count)]  # noqa: F841
 
             # TODO: Padding is in 3.0.1 SDK sample but not 3.1.0?
-            padding = data.unpack(uint32_t)  # noqa: F841
+            # padding = data.unpack(uint32_t)  # noqa: F841
 
         mean_error = None
         if version >= Version(2):
@@ -370,8 +370,7 @@ class MocapFrameMessage(object):
         rigid_bodies = [RigidBody.deserialize(data, version) for i in range(rigid_body_count)]
 
         skeletons = []
-        if version > Version(2):
-            # TODO: Original version check here contradicted comment
+        if version > Version(2, 0):
             skeleton_count = data.unpack(uint32_t)
             skeletons = [Skeleton.deserialize(data, version) for i in range(skeleton_count)]
 
@@ -392,6 +391,9 @@ class MocapFrameMessage(object):
             device_count = data.unpack(uint32_t)
             devices = [Device.deserialize(data, version) for i in range(device_count)]
 
+        if version < Version(3):
+            # TODO: Store this?
+            software_latency = data.unpack(float_t)  # noqa: F841
         timing_info = TimingInfo.deserialize(data, version)
 
         # TODO: Shouldn't this be a uint16_t?

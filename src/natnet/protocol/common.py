@@ -79,6 +79,10 @@ class ParseBuffer(object):
         """Length of remaining part of buffer."""
         return len(self.data) - self.offset
 
+    # def __repr__(self):
+    #     """Convenient string representation for debugging."""
+    #     return ' '.join('{:02x}'.format(c) for c in self.data[self.offset:])
+
     def skip(self, struct_type, n=1):
         """Skip `n` fields of the given type."""
         self.offset += struct_type.size*n
