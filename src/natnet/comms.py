@@ -24,7 +24,7 @@ from .logging import Logger
 from .protocol.MocapFrameMessage import LabelledMarker
 from .protocol.ModelDefinitionsMessage import (MarkersetDescription, RigidBodyDescription,
                                                SkeletonDescription)
-from.protocol.ServerInfoMessage import ConnectionInfo
+from .protocol.ServerInfoMessage import ConnectionInfo
 
 
 __all__ = ['Client', 'Connection', 'TimestampAndLatency']
