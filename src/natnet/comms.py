@@ -24,6 +24,8 @@ from .logging import Logger
 from .protocol.MocapFrameMessage import LabelledMarker
 from .protocol.ModelDefinitionsMessage import (MarkersetDescription, RigidBodyDescription,
                                                SkeletonDescription)
+from.protocol.ServerInfoMessage import ConnectionInfo
+
 
 __all__ = ['Client', 'Connection', 'TimestampAndLatency']
 
@@ -406,7 +408,16 @@ class Client(object):
                                                                    timeout=timeout)
         logger.debug('Server application: %s', server_info.app_name)
         logger.debug('Server version: %s', server_info.app_version)
-        assert server_info.connection_info.multicast
+        if server_info.natnet_version >= protocol.Version(3):
+            # Unicast not supported
+            assert server_info.connection_info.multicast
+        else:
+            # Before NatNet 3.0 the multicast address wasn't sent and you always had to specify it
+            # manually.  For the sake of getting this to work, let's just assume connecting to the
+            # default multicast address works.
+            ci = ConnectionInfo(data_port=1511, multicast=True, multicast_address=b'239.255.42.99')
+            logger.warning('Assuming server is in multicast mode on {}:{}'.format(
+                           ci.data_port, ci.multicast_address))
 
         return cls._setup_client(conn, server_info, logger)
 
