@@ -26,7 +26,6 @@ from .protocol.ModelDefinitionsMessage import (MarkersetDescription, RigidBodyDe
                                                SkeletonDescription)
 from .protocol.ServerInfoMessage import ConnectionInfo
 
-
 __all__ = ['Client', 'Connection', 'TimestampAndLatency']
 
 
@@ -418,6 +417,7 @@ class Client(object):
             ci = ConnectionInfo(data_port=1511, multicast=True, multicast_address=b'239.255.42.99')
             logger.warning('Assuming server is in multicast mode on {}:{}'.format(
                            ci.data_port, ci.multicast_address))
+            server_info.connection_info = ci
 
         return cls._setup_client(conn, server_info, logger)
 
