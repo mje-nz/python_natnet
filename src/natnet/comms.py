@@ -273,8 +273,6 @@ class ClockSynchronizer(object):
         minimum_time_between_echo_requests = 0.5
         if time_since_last_sync > 5:
             minimum_time_between_echo_requests = 0.1
-        if time_since_last_sync > 10:
-            minimum_time_between_echo_requests = 0.01
         if time_since_last_echo > minimum_time_between_echo_requests:
             self.send_echo_request(conn)
 
