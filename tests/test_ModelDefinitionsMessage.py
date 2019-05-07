@@ -110,6 +110,48 @@ def test_parse_modeldef_packet_v2():
         'Karlie_RToeIn']
 
 
+def test_parse_modeldef_packet_skeleton_v3():
+    """Test parsing a NatNet 3.0 packet containing a ModelDefinitions message with skeletons."""
+    packet = open('test_data/modeldef_packet_skeleton_v3.bin', 'rb').read()
+    modeldef = deserialize(packet, Version(3), strict=True)  # type: ModelDefinitionsMessage
+
+    # TODO: Verify against SampleClient
+
+    assert len(modeldef.models) == 3
+
+    # Skeleton description
+    sd = modeldef.models[0]  # type: SkeletonDescription
+    assert type(sd) == SkeletonDescription
+    assert sd.name == 'Skeleton 002'
+    assert sd.id_ == 3
+    assert len(sd.rigid_bodies) == 21
+    assert [body.name for body in sd.rigid_bodies] == [
+        'Skeleton 002_Hip', 'Skeleton 002_Ab', 'Skeleton 002_Chest', 'Skeleton 002_Neck',
+        'Skeleton 002_Head', 'Skeleton 002_LShoulder', 'Skeleton 002_LUArm', 'Skeleton 002_LFArm',
+        'Skeleton 002_LHand', 'Skeleton 002_RShoulder', 'Skeleton 002_RUArm', 'Skeleton 002_RFArm',
+        'Skeleton 002_RHand', 'Skeleton 002_LThigh', 'Skeleton 002_LShin', 'Skeleton 002_LFoot',
+        'Skeleton 002_RThigh', 'Skeleton 002_RShin', 'Skeleton 002_RFoot', 'Skeleton 002_LToe',
+        'Skeleton 002_RToe']
+
+    # Skeleton markerset description
+    ms = modeldef.models[1]  # type: MarkersetDescription
+    assert type(ms) == MarkersetDescription
+    assert ms.name == 'Skeleton 002'
+    assert ms.marker_names == [
+        'WaistLFront', 'WaistRFront', 'WaistLBack', 'WaistRBack', 'BackTop', 'Chest', 'BackLeft',
+        'BackRight', 'HeadTop', 'HeadFront', 'HeadSide', 'LShoulderBack', 'LShoulderTop',
+        'LElbowOut', 'LUArmHigh', 'LHandOut', 'LWristOut', 'LWristIn', 'RShoulderBack',
+        'RShoulderTop', 'RElbowOut', 'RUArmHigh', 'RHandOut', 'RWristOut', 'RWristIn',
+        'LKneeOut', 'LThigh', 'LAnkleOut', 'LShin', 'LToeOut', 'LToeIn', 'RKneeOut', 'RThigh',
+        'RAnkleOut', 'RShin', 'RToeOut', 'RToeIn']
+
+    # 'all' markerset definition
+    ms2 = modeldef.models[2]  # type: MarkersetDescription
+    assert type(ms2) == MarkersetDescription
+    assert ms2.name == 'all'
+    assert ms2.marker_names == ms.marker_names
+
+
 def test_serialize_modeldef_message():
     """Test serializing a ModelDefinitionsMessage."""
     packet = open('test_data/modeldef_packet_v3.bin', 'rb').read()

@@ -128,11 +128,9 @@ class RigidBodyDescription(object):
         marker_positions = []
         required_active_labels = []
 
-        # Marker positions are included in version 3, but apparently not when this rigid body is
-        # inside a skeleton? I don't have the equipment to test this.
-        if skip_markers is None:
-            skip_markers = version < Version(3)
-        if not skip_markers:
+        # Marker positions are included from version 3, but if this is a skeleton bone description
+        # then the count is zero.
+        if version >= Version(3):
             marker_count = data.unpack(uint32_t)
             marker_positions = [data.unpack(vector3_t) for i in range(marker_count)]
             required_active_labels = [data.unpack(uint32_t) for i in range(marker_count)]
