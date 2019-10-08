@@ -23,6 +23,7 @@ except ImportError:
     pass
 
 import enum
+import warnings
 
 import attr
 
@@ -37,6 +38,8 @@ class ModelType(enum.IntEnum):
     # I assume:
     ForcePlate = 3
     Device = 4
+    # I wildly guess:
+    Camera = 5
 
 
 class ModelRegistry(SerDesRegistry):
@@ -55,11 +58,23 @@ class ModelRegistry(SerDesRegistry):
         raise NotImplementedError()
 
     def deserialize(self, data, version=None, strict=None):
+        """Deserialize a model description.
+
+        Args:
+            data (ParseBuffer): Pointer into a NatNet packet
+            version (Version): Protocol version to use when deserializing
+            strict (bool): ignored
+
+        Returns:
+            Model description instance
+        """
         model_type = data.unpack(uint32_t)
         try:
             impl = self._implementation_types[model_type]
         except KeyError:
-            raise ValueError('Unknown model definition type {}'.format(model_type))
+            warnings.warn('Unknown model description type {}'.format(model_type))
+            # TODO: What's the right way to handle this?
+            return None
         return impl.deserialize(data, version)
 
 
@@ -206,6 +221,19 @@ class DeviceDescription(object):
     @classmethod
     def deserialize(cls, data, version=None):
         raise NotImplementedError
+
+
+@_registry.register_message(ModelType.Camera)
+@attr.s
+class CameraDescription(object):
+
+    name = attr.ib()  # type: str
+
+    @classmethod
+    def deserialize(cls, data, version=None):
+        # As far as I can tell the rest is garbage
+        name = data.unpack_cstr(44)
+        return cls(name)
 
 
 @register_message(MessageId.ModelDef)

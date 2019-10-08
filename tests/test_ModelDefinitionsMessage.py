@@ -3,8 +3,8 @@
 import pytest
 
 from natnet.protocol import ModelDefinitionsMessage, Version, deserialize, serialize  # noqa: F401
-from natnet.protocol.ModelDefinitionsMessage import (MarkersetDescription, RigidBodyDescription,
-                                                     SkeletonDescription)
+from natnet.protocol.ModelDefinitionsMessage import (CameraDescription, MarkersetDescription,
+                                                     RigidBodyDescription, SkeletonDescription)
 
 
 def test_parse_modeldef_packet_v3():
@@ -41,6 +41,46 @@ def test_parse_modeldef_packet_v3():
     assert ms2.name == 'all'
     assert ms2.marker_names == ['RaceQuad_1', 'RaceQuad_2', 'RaceQuad_3', 'RaceQuad_4',
                                 'RaceQuad_5']
+
+
+def test_parse_modeldef_packet_v3_2():
+    """Test parsing a NatNet 3.0 packet from Motive 2.1 containing mystery id=5 models."""
+    packet = open('test_data/modeldef_packet_v3_2.bin', 'rb').read()
+    modeldef = deserialize(packet, Version(3), strict=True)  # type: ModelDefinitionsMessage
+
+    assert len(modeldef.models) == 7
+
+    # Crossbow rigid body description
+    rb = modeldef.models[0]  # type:  RigidBodyDescription
+    assert type(rb) == RigidBodyDescription
+    assert rb.name == 'crossbow'
+
+    # Crossbow markerset definition
+    ms1 = modeldef.models[1]  # type: MarkersetDescription
+    assert type(ms1) == MarkersetDescription
+    assert ms1.name == 'crossbow'
+
+    # 'all' markerset definition
+    ms2 = modeldef.models[2]  # type: MarkersetDescription
+    assert type(ms2) == MarkersetDescription
+    assert ms2.name == 'all'
+
+    # Camera definitions
+    cam1 = modeldef.models[3]  # type: CameraDescription
+    assert type(cam1) == CameraDescription
+    assert cam1.name == "Prime 13 #28108"
+
+    cam2 = modeldef.models[4]  # type: CameraDescription
+    assert type(cam1) == CameraDescription
+    assert cam2.name == "Prime 13 #28107"
+
+    cam3 = modeldef.models[5]  # type: CameraDescription
+    assert type(cam1) == CameraDescription
+    assert cam3.name == "Prime 13 #28105"
+
+    cam4 = modeldef.models[6]  # type: CameraDescription
+    assert type(cam1) == CameraDescription
+    assert cam4.name == "Prime 13 #28106"
 
 
 def test_parse_modeldef_packet_v2():
